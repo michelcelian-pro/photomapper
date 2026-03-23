@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PhotoMapper v2 — Carrelage Signature</title>
+<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+  :root {
+    --bg: #f4f3ee;
+    --surface: #ffffff;
+    --surface2: #f9f8f4;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --text: #1a1a18;
+    --text2: #6b6a63;
+    --purple: #534AB7;
+    --purple-light: #EEEDFE;
+    --purple-mid: #AFA9EC;
+    --green: #1D9E75;
+    --green-light: #E1F5EE;
+    --amber: #BA7517;
+    --amber-light: #FAEEDA;
+    --red: #E24B4A;
+    --red-light: #FCEBEB;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+  
+  /* Layout */
+  .app { max-width: 100%; margin: 0 auto; padding: 24px 28px; }
+  
+  /* Header */
+  .header { background: var(--surface); border-radius: var(--radius); padding: 20px 24px; margin-bottom: 16px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .header-left h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-left p { font-size: 12px; color: var(--text2); margin-top: 3px; }
+  .version-badge { background: var(--purple-light); color: var(--purple); padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+
+  /* Steps nav */
+  .steps { display: flex; gap: 8px; margin-bottom: 16px; }
+  .step { flex: 1; background: var(--surface); border-radius: var(--radius); padding: 12px 16px; border: 1.5px solid var(--border); cursor: pointer; transition: all .2s; }
+  .step.active { border-color: var(--purple); background: var(--purple-light); }
+  .step.done { border-color: var(--green); background: var(--green-light); }
+  .step.disabled { opacity: 0.5; cursor: default; }
+  .step-num { font-size: 10px; font-weight: 600; color: var(--text2); margin-bottom: 2px; text-transform: uppercase; letter-spacing: .5px; }
+  .step.active .step-num { color: var(--purple); }
+  .step.done .step-num { color: var(--green); }
+  .step-label { font-size: 13px; font-weight: 500; }
+  .step.active .step-label { color: var(--purple); }
+  .step.done .step-label { color: var(--green); }
+
+  /* Card */
+  .card { background: var(--surface); border-radius: var(--radius); padding: 20px; border: 1px solid var(--border); margin-bottom: 12px; }
+  .card-title { font-size: 14px; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .card-title span { font-size: 16px; }
+
+  /* Drop zone */
+  .drop-zone { border: 2px dashed var(--border2); border-radius: var(--radius); padding: 28px 20px; text-align: center; cursor: pointer; transition: all .2s; background: var(--surface2); }
+  .drop-zone:hover, .drop-zone.dragover { border-color: var(--purple); background: var(--purple-light); }
+  .drop-zone .dz-icon { font-size: 32px; margin-bottom: 8px; }
+  .drop-zone strong { font-size: 13px; display: block; margin-bottom: 4px; }
+  .drop-zone small { color: var(--text2); font-size: 12px; }
+  .drop-zone .dz-status { margin-top: 10px; }
+
+  /* Badges */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: var(--green-light); color: var(--green); }
+  .badge-purple { background: var(--purple-light); color: var(--purple); }
+  .badge-amber { background: var(--amber-light); color: var(--amber); }
+  .badge-red { background: var(--red-light); color: var(--red); }
+  .badge-gray { background: #F1EFE8; color: #5F5E5A; }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .2s; text-decoration: none; }
+  .btn-primary { background: var(--purple); color: #fff; }
+  .btn-primary:hover { background: #3C3489; }
+  .btn-primary:disabled { background: var(--purple-mid); cursor: not-allowed; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
+  .btn-secondary:hover { background: var(--bg); }
+  .btn-green { background: var(--green); color: #fff; }
+  .btn-green:hover { background: #0F6E56; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+  /* Input */
+  input[type="text"], input[type="password"] { padding: 8px 12px; border: 1.5px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; background: var(--surface); color: var(--text); width: 100%; transition: border-color .2s; }
+  input[type="text"]:focus, input[type="password"]:focus { outline: none; border-color: var(--purple); }
+  select { padding: 6px 10px; border: 1.5px solid var(--border2); border-radius: var(--radius-sm); font-size: 12px; background: var(--surface); color: var(--text); cursor: pointer; }
+  select:focus { outline: none; border-color: var(--purple); }
+
+  /* Progress */
+  .progress-wrap { margin-top: 12px; }
+  .progress-label { font-size: 12px; color: var(--text2); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .progress-bar { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
+  .progress-fill { height: 100%; background: var(--purple); border-radius: 4px; transition: width .4s ease; }
+
+  /* Stats grid */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat { background: var(--surface); border-radius: var(--radius); padding: 14px; text-align: center; border: 1px solid var(--border); }
+  .stat-val { font-size: 26px; font-weight: 600; }
+  .stat-lbl { font-size: 11px; color: var(--text2); margin-top: 3px; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; padding: 8px 10px; font-weight: 600; font-size: 11px; color: var(--text2); border-bottom: 2px solid var(--border); background: var(--surface2); text-transform: uppercase; letter-spacing: .4px; }
+  td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:hover td { background: var(--surface2); }
+  .thumb { width: 64px; height: 64px; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); cursor: zoom-in; }
+  .thumb-wrap { position: relative; display: inline-block; }
+  .thumb-popup { display: none; position: fixed; width: 280px; height: 280px; object-fit: contain; background: #fff; border-radius: var(--radius); border: 1px solid var(--border2); box-shadow: 0 8px 32px rgba(0,0,0,0.2); z-index: 9999; pointer-events: none; }
+  .thumb-wrap:hover .thumb-popup { display: block; }
+  .filename { max-width: 220px; word-break: break-all; color: var(--text2); font-size: 11px; font-family: monospace; line-height: 1.4; }
+  .newname { font-family: monospace; font-size: 11px; font-weight: 600; }
+  .newname.ok { color: var(--green); }
+  .newname.none { color: var(--red); }
+
+  /* Confidence bar */
+  .conf-wrap { display: flex; align-items: center; gap: 6px; }
+  .conf-bar { width: 52px; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .conf-fill { height: 100%; border-radius: 3px; }
+  .conf-pct { font-size: 11px; font-weight: 600; min-width: 30px; }
+
+  /* Code input in table */
+  .code-input { width: 90px; padding: 4px 8px; font-size: 12px; font-family: monospace; }
+
+  /* Info box */
+  .info-box { background: var(--purple-light); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 12px; color: #3C3489; margin-bottom: 14px; line-height: 1.6; }
+  .info-box strong { font-weight: 600; }
+
+  /* Filter bar */
+  .filter-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  /* Toast */
+  #toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a18; color: #fff; padding: 10px 18px; border-radius: var(--radius-sm); font-size: 13px; z-index: 9999; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+
+  /* Key section */
+  .key-section { display: flex; gap: 8px; align-items: flex-end; }
+  .key-section .key-wrap { flex: 1; }
+  .key-section label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 5px; font-weight: 500; }
+
+  /* Reasoning tooltip */
+  .reasoning { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text2); font-size: 11px; cursor: help; }
+
+  /* Row actions */
+  .row-actions { display: flex; gap: 4px; }
+
+  /* Suppression fond */
+  .bg-remove-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; margin-top:14px; }
+  .bg-card { background:var(--surface2); border-radius:var(--radius); border:1px solid var(--border); overflow:hidden; }
+  .bg-card-imgs { display:grid; grid-template-columns:1fr 1fr; gap:2px; background:var(--border); }
+  .bg-card-imgs img { width:100%; aspect-ratio:1; object-fit:contain; background:#fff; display:block; }
+  .bg-card-imgs .bg-result { background: repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%) 0 0 / 16px 16px; }
+  .bg-card-info { padding:8px 10px; }
+  .bg-card-name { font-size:10px; font-family:monospace; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bg-card-actions { display:flex; gap:4px; margin-top:6px; }
+  .bg-label { font-size:9px; font-weight:600; text-align:center; padding:2px 0; color:var(--text2); }
+  .processing-overlay { position:absolute; inset:0; background:rgba(255,255,255,0.8); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--purple); font-weight:600; }
+
+  /* Mode switcher */
+  .mode-switcher { display:flex; gap:8px; margin-bottom:12px; }
+  .mode-btn { padding:10px 20px; border-radius:var(--radius); font-size:13px; font-weight:600; cursor:pointer; border:1.5px solid var(--border2); background:var(--surface); color:var(--text2); transition:all .2s; }
+  .mode-btn.active { background:var(--purple); color:#fff; border-color:var(--purple); }
+  .mode-btn:hover:not(.active) { background:var(--purple-light); color:var(--purple); border-color:var(--purple); }
+
+  /* Studio grid */
+  .studio-card { background:var(--surface2); border-radius:var(--radius); border:1.5px solid var(--border); overflow:hidden; position:relative; transition:border-color .2s; }
+  .studio-card.already-ok { border-color:var(--green); }
+  .studio-card.modified { border-color:var(--purple); }
+  .studio-card img { width:100%; aspect-ratio:1; object-fit:contain; display:block; background:#fff; }
+  .studio-card .studio-name { font-size:10px; color:var(--text2); padding:5px 8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .studio-card .studio-actions { display:flex; gap:4px; padding:5px 8px 8px; }
+  .studio-card .status-badge { position:absolute; top:6px; left:6px; color:#fff; font-size:10px; font-weight:600; padding:2px 7px; border-radius:10px; }
+  .studio-card .status-badge.ok { background:var(--green); }
+  .studio-card .status-badge.modified { background:var(--purple); }
+  .studio-card .status-badge.proposed { background:var(--amber); }
+  .studio-tabs { display:flex; gap:6px; margin-bottom:14px; }
+  .studio-tab { padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer; border:1.5px solid var(--border2); background:var(--surface); color:var(--text2); transition:all .2s; }
+  .studio-tab.active { background:var(--purple); color:#fff; border-color:var(--purple); }
+  .studio-tab.green.active { background:var(--green); border-color:var(--green); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <h1>📐 PhotoMapper v2</h1>
+      <p>Association automatique photos × catalogue · Carrelage Signature</p>
+    </div>
+    <span class="version-badge">v2.0 · Claude AI</span>
+  </div>
+
+  <!-- Mode switcher -->
+  <div class="mode-switcher">
+    <button class="mode-btn active" id="mode-btn-matching" onclick="switchMode('matching')">🤖 Matching IA</button>
+    <button class="mode-btn" id="mode-btn-studio" onclick="switchMode('studio')">✂️ Studio Photo</button>
+  </div>
+
+  <!-- MATCHING: Steps -->
+  <div id="matching-nav">
+  <div class="steps">
+    <div class="step active" id="step-tab-0" onclick="goStep(0)">
+      <div class="step-num">Étape 1</div>
+      <div class="step-label">📁 Fichiers</div>
+    </div>
+    <div class="step disabled" id="step-tab-1" onclick="goStep(1)">
+      <div class="step-num">Étape 2</div>
+      <div class="step-label">🤖 Matching IA</div>
+    </div>
+    <div class="step disabled" id="step-tab-2" onclick="goStep(2)">
+      <div class="step-num">Étape 3</div>
+      <div class="step-label">✅ Résultats & Export</div>
+    </div>
+  </div>
+  </div>
+
+  <!-- STEP 0: Fichiers -->
+  <div id="panel-0">
+    <!-- Clé API -->
+    <div class="card">
+      <div class="card-title"><span>🔑</span> Clé API Google Gemini</div>
+      <div class="key-section">
+        <div class="key-wrap">
+          <label>Clé API Google Gemini (AIza...)</label>
+          <input type="password" id="api-key" placeholder="AIzaSy..." oninput="onKeyInput()" />
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="toggleKey()">Afficher</button>
+        <button class="btn btn-primary btn-sm" id="key-save-btn" onclick="saveKey()">💾 Mémoriser</button>
+      </div>
+      <div id="key-saved-info" style="display:none;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:var(--green-light);border-radius:6px;font-size:12px;color:var(--green)">
+        <span>✅ Clé mémorisée — chargée automatiquement à chaque ouverture</span>
+        <button class="btn btn-sm" style="background:transparent;color:var(--red);padding:2px 8px;font-size:11px" onclick="deleteKey()">🗑 Supprimer</button>
+      </div>
+      <div style="margin-top:10px">
+        <label style="font-size:12px;color:var(--text2);font-weight:500;display:block;margin-bottom:5px">Modèle IA</label>
+        <select id="model-select" style="width:100%" onchange="localStorage.setItem('gemini_model', this.value)">
+          <option value="gemini-2.5-flash">⚡ Gemini 2.5 Flash — Rapide, recommandé (gratuit)</option>
+          <option value="gemini-2.5-pro">🎯 Gemini 2.5 Pro — Plus précis, plus lent</option>
+        </select>
+      </div>
+      <p style="font-size:11px;color:var(--text2);margin-top:8px;">Obtenez votre clé gratuite sur <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--purple)">aistudio.google.com</a></p>
+    </div>
+
+    <!-- Excel -->
+    <div class="card">
+      <div class="card-title"><span>📊</span> Catalogue Excel</div>
+      <div class="drop-zone" id="dz-excel" onclick="document.getElementById('input-excel').click()"
+           ondragover="dzOver(event,'dz-excel')" ondragleave="dzLeave('dz-excel')" ondrop="dzDrop(event,'excel')">
+        <div class="dz-icon">📋</div>
+        <strong>Glissez votre Excel ici ou cliquez</strong>
+        <small>.xlsx, .xls, .csv — colonnes Code + Titre détectées auto</small>
+        <div class="dz-status" id="excel-status"></div>
+      </div>
+      <input type="file" id="input-excel" accept=".xlsx,.xls,.csv" style="display:none" onchange="onExcelInput(this)">
+    </div>
+
+    <!-- Images -->
+    <div class="card">
+      <div class="card-title"><span>🖼️</span> Images fournisseur</div>
+      <div class="drop-zone" id="dz-img" onclick="document.getElementById('input-img').click()"
+           ondragover="dzOver(event,'dz-img')" ondragleave="dzLeave('dz-img')" ondrop="dzDrop(event,'img')">
+        <div class="dz-icon">🗂️</div>
+        <strong>Glissez vos images ou un ZIP ici</strong>
+        <small>JPG, PNG, WEBP, TIF — ou archive .ZIP complète</small>
+        <div class="dz-status" id="img-status"></div>
+      </div>
+      <input type="file" id="input-img" accept=".jpg,.jpeg,.png,.webp,.tif,.tiff,.zip" multiple style="display:none" onchange="onImgInput(this)">
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn btn-secondary" onclick="clearAll()">🗑 Tout effacer</button>
+      <button class="btn btn-primary" id="btn-step1" onclick="goStep(1)" disabled>Continuer → Matching IA</button>
+    </div>
+  </div>
+
+  <!-- STEP 1: Matching -->
+  <div id="panel-1" style="display:none">
+    <div class="card">
+      <div class="card-title"><span>🤖</span> Lancer le matching IA</div>
+      <div class="info-box">
+        <strong>Convention de nommage :</strong> <code>CODE_TAG_NN.jpg</code> — ex: <code>NC008_AMB_01.jpg</code>, <code>NC008_MIN_01.jpg</code><br>
+        <strong>Tags disponibles :</strong> AMB (ambiance) · MIN (minimale) · BIAIS · ENS (ensemble) · PROD (produit)<br>
+        <strong>Améliorations v2 :</strong> photos ambiance multi-couleurs → un match par couleur · noms cryptiques · double match antidérapant (AD)
+      </div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:16px">
+        Prêt à analyser <strong id="ready-imgs">0</strong> images avec <strong id="ready-prods">0</strong> produits du catalogue.
+      </p>
+      <div id="progress-wrap" style="display:none" class="progress-wrap">
+        <div class="progress-label">
+          <span id="progress-txt">Analyse en cours...</span>
+          <span id="progress-pct">0%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-secondary" onclick="goStep(0)">← Retour</button>
+        <button class="btn btn-primary" id="btn-run" onclick="runMatching()">🚀 Lancer le mapping</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Résultats -->
+  <div id="panel-2" style="display:none">
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat"><div class="stat-val" id="stat-total" style="color:var(--purple)">0</div><div class="stat-lbl">Total images</div></div>
+      <div class="stat"><div class="stat-val" id="stat-matched" style="color:var(--green)">0</div><div class="stat-lbl">Associées ✓</div></div>
+      <div class="stat"><div class="stat-val" id="stat-low" style="color:var(--amber)">0</div><div class="stat-lbl">Faible confiance</div></div>
+      <div class="stat"><div class="stat-val" id="stat-unmatched" style="color:var(--red)">0</div><div class="stat-lbl">Non associées</div></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <div class="card-title" style="margin-bottom:0"><span>📋</span> Résultats du matching</div>
+        <div class="filter-bar">
+          <select id="filter-status" onchange="renderResults()">
+            <option value="all">Tous</option>
+            <option value="matched">Associés (≥85%)</option>
+            <option value="low">Faible confiance</option>
+            <option value="unmatched">Non associés</option>
+          </select>
+          <input type="text" id="filter-search" placeholder="Rechercher..." style="width:160px" oninput="renderResults()">
+          <button class="btn btn-green btn-sm" onclick="exportZip()">⬇ Export ZIP 1000×1000</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Image originale</th>
+              <th>Aperçu</th>
+              <th>Code produit</th>
+              <th>Tag</th>
+              <th>Nouveau nom</th>
+              <th>Confiance</th>
+              <th>Raison IA</th>
+            </tr>
+          </thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- STUDIO PHOTO -->
+  <div id="panel-studio" style="display:none">
+
+    <div class="card">
+      <div class="card-title"><span>✂️</span> Studio Photo — Recadrage & Redimensionnement 1000×1000</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Chargez vos photos, recadrez-les si besoin, et exportez-les toutes en 1000×1000 JPEG.</p>
+      <div class="drop-zone" id="dz-studio" onclick="document.getElementById('input-studio').click()"
+           ondragover="dzOver(event,'dz-studio')" ondragleave="dzLeave('dz-studio')" ondrop="dzDropStudio(event)">
+        <div class="dz-icon">🖼️</div>
+        <strong>Glissez vos photos ici ou cliquez</strong>
+        <small>JPG, PNG, WEBP, TIF — sélection multiple possible</small>
+        <div class="dz-status" id="studio-status"></div>
+      </div>
+      <input type="file" id="input-studio" accept=".jpg,.jpeg,.png,.webp,.tif,.tiff" multiple style="display:none" onchange="loadStudioImages(this)">
+    </div>
+
+    <!-- Grille photos studio -->
+    <div id="studio-grid-wrap" style="display:none">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+          <div class="card-title" style="margin-bottom:0"><span>🖼️</span> <span id="studio-count">0</span> photo(s) chargée(s)</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-secondary btn-sm" onclick="clearStudio()">🗑 Tout effacer</button>
+            <button class="btn btn-secondary btn-sm" onclick="openGallery()">👁 Révision rapide</button>
+            <button class="btn btn-green" onclick="exportStudioZip()">⬇ Exporter ZIP 1000×1000</button>
+          </div>
+        </div>
+
+        <!-- Stats rapides -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+          <div style="background:var(--green-light);border-radius:8px;padding:10px;text-align:center">
+            <div id="count-ok" style="font-size:20px;font-weight:600;color:var(--green)">0</div>
+            <div style="font-size:11px;color:var(--green);margin-top:2px">✓ Déjà 1000×1000</div>
+          </div>
+          <div style="background:var(--purple-light);border-radius:8px;padding:10px;text-align:center">
+            <div id="count-modified" style="font-size:20px;font-weight:600;color:var(--purple)">0</div>
+            <div style="font-size:11px;color:var(--purple);margin-top:2px">✂ Modifiées</div>
+          </div>
+          <div style="background:var(--amber-light);border-radius:8px;padding:10px;text-align:center">
+            <div id="count-proposed" style="font-size:20px;font-weight:600;color:var(--amber)">0</div>
+            <div style="font-size:11px;color:var(--amber);margin-top:2px">⏳ Proposition auto</div>
+          </div>
+        </div>
+
+        <!-- Filtre par onglets -->
+        <div class="studio-tabs">
+          <div class="studio-tab active" id="tab-all" onclick="setStudioTab('all')">Toutes (<span id="tab-count-all">0</span>)</div>
+          <div class="studio-tab green" id="tab-ok" onclick="setStudioTab('ok')">✓ Déjà OK (<span id="tab-count-ok">0</span>)</div>
+          <div class="studio-tab" id="tab-proposed" onclick="setStudioTab('proposed')">⏳ À valider (<span id="tab-count-proposed">0</span>)</div>
+          <div class="studio-tab" id="tab-modified" onclick="setStudioTab('modified')">✂ Modifiées (<span id="tab-count-modified">0</span>)</div>
+        </div>
+
+        <!-- Options de traitement -->
+        <div style="background:var(--purple-light);border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#3C3489;display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+          <strong>Mode auto :</strong>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+            <input type="radio" name="resize-mode" value="contain" checked> Contain — fond blanc (produit)
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+            <input type="radio" name="resize-mode" value="cover"> Cover — recadrage centré (ambiance)
+          </label>
+        </div>
+
+        <div id="studio-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px"></div>
+      </div>
+    </div>
+
+    <!-- Section suppression de fond -->
+    <div class="card" style="margin-top:0">
+      <div class="card-title"><span>✂️</span> Suppression de fond — PhotoRoom AI</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Supprimez automatiquement l'arrière-plan de vos photos produit grâce à Rembg — entièrement local, illimité et gratuit. Nécessite le serveur <code>serveur_rembg.py</code> lancé dans le Terminal.</p>
+
+      <!-- Statut serveur Rembg -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:12px 14px;border-radius:8px;border:1.5px solid var(--border2);background:var(--surface2)">
+        <div id="server-dot" style="width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0"></div>
+        <div style="flex:1">
+          <div id="server-status-txt" style="font-size:13px;font-weight:500">Vérification du serveur Rembg...</div>
+          <div id="server-status-sub" style="font-size:11px;color:var(--text2);margin-top:2px">Le serveur doit tourner sur http://localhost:5050</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="checkServer()">↺ Vérifier</button>
+      </div>
+      <div style="background:var(--purple-light);border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#3C3489;line-height:1.7">
+        <strong>Pour démarrer le serveur :</strong> ouvrez le Terminal et tapez :<br>
+        <code style="background:rgba(0,0,0,0.08);padding:2px 8px;border-radius:4px;font-size:11px">python3 serveur_rembg.py</code>
+        &nbsp;puis gardez le Terminal ouvert.
+      </div>
+
+      <!-- Drop zone -->
+      <div class="drop-zone" id="dz-bgremove" onclick="document.getElementById('input-bgremove').click()"
+           ondragover="dzOver(event,'dz-bgremove')" ondragleave="dzLeave('dz-bgremove')" ondrop="dzDropBgRemove(event)">
+        <div class="dz-icon">🪄</div>
+        <strong>Glissez vos photos ici pour supprimer le fond</strong>
+        <small>JPG, PNG, WEBP — traitées une par une via PhotoRoom AI</small>
+        <div class="dz-status" id="bgremove-status"></div>
+      </div>
+      <input type="file" id="input-bgremove" accept=".jpg,.jpeg,.png,.webp" multiple style="display:none" onchange="loadBgRemoveImages(this)">
+
+      <!-- Options fond -->
+      <div style="display:flex;gap:16px;align-items:center;margin-top:12px;flex-wrap:wrap;font-size:12px">
+        <strong style="color:var(--text2)">Fond de remplacement :</strong>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="radio" name="bg-fill" value="transparent" checked> Transparent (PNG)
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="radio" name="bg-fill" value="white"> Blanc (JPG)
+        </label>
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="radio" name="bg-fill" value="custom">
+          <span>Couleur :</span>
+          <input type="color" id="bg-custom-color" value="#f5f5f5" style="width:32px;height:22px;border:1px solid var(--border2);border-radius:4px;cursor:pointer">
+        </label>
+      </div>
+
+      <!-- Grille résultats -->
+      <div id="bgremove-grid-wrap" style="display:none;margin-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <span style="font-size:13px;font-weight:500"><span id="bgremove-done">0</span> / <span id="bgremove-total">0</span> traitées</span>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="clearBgRemove()">🗑 Effacer</button>
+            <button class="btn btn-primary btn-sm" id="btn-process-all" onclick="processAllBgRemove()">🪄 Traiter toutes</button>
+            <button class="btn btn-green btn-sm" id="btn-export-bg" onclick="exportBgRemoveZip()" style="display:none">⬇ Exporter ZIP</button>
+          </div>
+        </div>
+        <div class="bg-remove-grid" id="bgremove-grid"></div>
+      </div>
+    </div>
+
+  <!-- Modal recadrage -->
+    <div id="crop-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center">
+      <div style="background:var(--surface);border-radius:var(--radius);padding:20px;max-width:90vw;max-height:90vh;overflow:auto;min-width:340px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h3 style="font-size:15px;font-weight:600">✂️ Recadrer l'image</h3>
+          <button class="btn btn-secondary btn-sm" onclick="closeCrop()">✕ Fermer</button>
+        </div>
+        <div style="position:relative;display:inline-block;user-select:none" id="crop-container">
+          <img id="crop-img" style="max-width:70vw;max-height:60vh;display:block">
+          <div id="crop-box" style="position:absolute;border:2px solid var(--purple);box-shadow:0 0 0 9999px rgba(0,0,0,0.45);cursor:move"></div>
+        </div>
+        <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <p style="font-size:12px;color:var(--text2)">Déplacez et redimensionnez le cadre · Ratio 1:1 forcé</p>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="resetCrop()">↺ Réinitialiser</button>
+            <button class="btn btn-primary" onclick="applyCrop()">✓ Appliquer le recadrage</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<!-- Galerie de révision plein écran -->
+<div id="gallery-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;flex-direction:column;">
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(0,0,0,0.5);flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="color:#fff;font-size:14px;font-weight:600">👁 Révision rapide</span>
+      <span id="gal-counter" style="color:rgba(255,255,255,0.5);font-size:12px"></span>
+      <span id="gal-filename" style="color:rgba(255,255,255,0.7);font-size:11px;font-family:monospace;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="color:rgba(255,255,255,0.4);font-size:11px">← → pour naviguer · Échap pour fermer</span>
+      <button onclick="closeGallery()" style="padding:6px 12px;border-radius:6px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;cursor:pointer;font-size:13px">✕ Fermer</button>
+    </div>
+  </div>
+
+  <!-- Images côte à côte -->
+  <div style="flex:1;display:flex;align-items:stretch;overflow:hidden;gap:2px;min-height:0">
+    <!-- Flèche gauche -->
+    <button onclick="galNav(-1)" style="width:52px;background:rgba(255,255,255,0.05);border:none;color:rgba(255,255,255,0.6);font-size:28px;cursor:pointer;flex-shrink:0">‹</button>
+
+    <!-- Original -->
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;background:rgba(255,255,255,0.03);min-width:0">
+      <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">📷 Original</div>
+      <img id="gal-original" src="" style="max-width:100%;max-height:calc(100vh - 200px);object-fit:contain;border-radius:8px">
+      <div id="gal-dims" style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:8px"></div>
+    </div>
+
+    <!-- Proposition -->
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;background:rgba(255,255,255,0.06);min-width:0">
+      <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">✨ Proposition 1000×1000</div>
+      <img id="gal-proposed" src="" style="max-width:100%;max-height:calc(100vh - 200px);object-fit:contain;border-radius:8px;background:#fff">
+      <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:8px">1000 × 1000 px</div>
+    </div>
+
+    <!-- Flèche droite -->
+    <button onclick="galNav(1)" style="width:52px;background:rgba(255,255,255,0.05);border:none;color:rgba(255,255,255,0.6);font-size:28px;cursor:pointer;flex-shrink:0">›</button>
+  </div>
+
+  <!-- Footer actions -->
+  <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 20px;background:rgba(0,0,0,0.5);flex-shrink:0">
+    <button onclick="galNav(-1)" style="padding:8px 16px;border-radius:8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;cursor:pointer;font-size:13px">← Précédent</button>
+    <button onclick="galAdjust()" style="padding:8px 16px;border-radius:8px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;cursor:pointer;font-size:13px">✂️ Ajuster manuellement</button>
+    <button onclick="galNav(1)" style="padding:8px 18px;border-radius:8px;background:#1D9E75;border:none;color:#fff;cursor:pointer;font-size:13px;font-weight:600">✓ OK → Suivant</button>
+    <button onclick="closeGallery()" style="padding:8px 16px;border-radius:8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;cursor:pointer;font-size:13px">Fermer</button>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let catalog = [];
+let images = [];
+let results = [];
+let currentStep = 0;
+const TAGS = ["packshot","detail","swatch","dimension","ambiance","lifestyle","pastilles","KO"];
+
+// ─── PERSISTANCE CLÉ API ─────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const savedKey = localStorage.getItem('gemini_api_key');
+  const savedModel = localStorage.getItem('gemini_model');
+  if (savedKey) {
+    document.getElementById('api-key').value = savedKey;
+    showKeySaved(true);
+  }
+  if (savedModel) {
+    const sel = document.getElementById('model-select');
+    if ([...sel.options].some(o => o.value === savedModel)) sel.value = savedModel;
+  }
+});
+
+function onKeyInput() {
+  showKeySaved(false);
+}
+
+function saveKey() {
+  const key = document.getElementById('api-key').value.trim();
+  if (!key) { toast('⚠️ Entrez une clé avant de mémoriser'); return; }
+  localStorage.setItem('gemini_api_key', key);
+  localStorage.setItem('gemini_model', document.getElementById('model-select').value);
+  showKeySaved(true);
+  toast('✅ Clé mémorisée — chargée automatiquement à la prochaine ouverture');
+}
+
+function deleteKey() {
+  localStorage.removeItem('gemini_api_key');
+  localStorage.removeItem('gemini_model');
+  document.getElementById('api-key').value = '';
+  showKeySaved(false);
+  toast('🗑 Clé supprimée');
+}
+
+function showKeySaved(saved) {
+  document.getElementById('key-save-btn').style.display = saved ? 'none' : 'inline-flex';
+  document.getElementById('key-saved-info').style.display = saved ? 'flex' : 'none';
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+function toast(msg, duration=3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', duration);
+}
+
+function detectTag(filename) {
+  const u = filename.toUpperCase();
+  // Ordre de priorité : du plus spécifique au plus général
+  if (u.includes("LIFESTYLE")) return "lifestyle";
+  if (u.includes("AMBIANCE") || u.includes("AMB_") || u.includes("_AMB")) return "ambiance";
+  if (u.includes("PACKSHOT") || u.includes("PACK")) return "packshot";
+  if (u.includes("DETAIL") || u.includes("BIAIS") || u.includes("PERSPECTIVE")) return "detail";
+  if (u.includes("SWATCH") || u.includes("ENS_") || u.includes("_ENS") || u.includes("ENSEMBLE")) return "swatch";
+  if (u.includes("DIMENSION") || u.includes("DIM_") || u.includes("_DIM") || u.includes("SCHEMA")) return "dimension";
+  if (u.includes("PASTILLE") || u.includes("COULEUR")) return "pastilles";
+  return "KO"; // non renseigné
+}
+
+function isCoverMode(tag) {
+  // ambiance et lifestyle → cover (pas de fond blanc)
+  return tag === "ambiance" || tag === "lifestyle";
+}
+
+function buildNewName(code, tag, index) {
+  return `${code}_${tag}_${String(index).padStart(2,'0')}.jpg`;
+}
+
+function rebuildNewNames() {
+  const counters = {};
+  results.forEach(r => {
+    if (!r.code) { r.newName = null; return; }
+    const key = `${r.code}_${r.tag}`;
+    counters[key] = (counters[key] || 0) + 1;
+    r.newName = buildNewName(r.code, r.tag, counters[key]);
+  });
+}
+
+function confColor(c) {
+  if (c >= 0.85) return 'var(--green)';
+  if (c >= 0.5) return 'var(--amber)';
+  return 'var(--red)';
+}
+
+function toggleKey() {
+  const inp = document.getElementById('api-key');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// ─── STEP NAV ─────────────────────────────────────────────────────────────────
+function goStep(n) {
+  if (n > 0 && !catalog.length) { toast("⚠️ Chargez un catalogue Excel d'abord"); return; }
+  if (n > 0 && !images.length) { toast("⚠️ Chargez des images d'abord"); return; }
+  if (n === 2 && !results.length) { toast("⚠️ Lancez le matching d'abord"); return; }
+  currentStep = n;
+  [0,1,2].forEach(i => {
+    document.getElementById(`panel-${i}`).style.display = i === n ? 'block' : 'none';
+    const tab = document.getElementById(`step-tab-${i}`);
+    tab.className = 'step ' + (i === n ? 'active' : i < n ? 'done' : 'disabled');
+  });
+  if (n === 1) {
+    document.getElementById('ready-imgs').textContent = images.length;
+    document.getElementById('ready-prods').textContent = catalog.length;
+  }
+}
+
+function checkReady() {
+  document.getElementById('btn-step1').disabled = !catalog.length || !images.length;
+}
+
+// ─── DROP ZONE ───────────────────────────────────────────────────────────────
+function dzOver(e, id) { e.preventDefault(); document.getElementById(id).classList.add('dragover'); }
+function dzLeave(id) { document.getElementById(id).classList.remove('dragover'); }
+function dzDrop(e, type) {
+  e.preventDefault();
+  dzLeave(type === 'excel' ? 'dz-excel' : 'dz-img');
+  const files = Array.from(e.dataTransfer.files);
+  if (type === 'excel' && files.length) loadExcel(files[0]);
+  else files.forEach(f => f.name.endsWith('.zip') ? loadZip(f) : loadImages([f]));
+}
+function onExcelInput(inp) { if (inp.files[0]) loadExcel(inp.files[0]); }
+function onImgInput(inp) {
+  const files = Array.from(inp.files);
+  files.forEach(f => f.name.toLowerCase().endsWith('.zip') ? loadZip(f) : loadImages([f]));
+}
+
+// ─── EXCEL PARSER ────────────────────────────────────────────────────────────
+async function loadExcel(file) {
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    if (!rows.length) { toast("❌ Fichier Excel vide"); return; }
+    const cols = Object.keys(rows[0]);
+    const codeCol = cols.find(c => /code|ref|sku|produit/i.test(c)) || cols[0];
+    const titreCol = cols.find(c => /titre|title|nom|name|libelle|désignation|description/i.test(c)) || cols[1] || cols[0];
+    catalog = rows.map((r,i) => ({
+      rowIndex: i,
+      code: String(r[codeCol]||'').trim(),
+      titre: String(r[titreCol]||'').trim()
+    })).filter(e => e.code);
+    document.getElementById('excel-status').innerHTML = `<span class="badge badge-green">✓ ${catalog.length} produits chargés</span>`;
+    toast(`✅ ${catalog.length} produits chargés depuis "${file.name}"`);
+    checkReady();
+  } catch(e) { toast("❌ Erreur lecture Excel: " + e.message); }
+}
+
+// ─── IMAGE LOADER ─────────────────────────────────────────────────────────────
+async function loadImages(files) {
+  const existing = new Set(images.map(i => i.name));
+  let added = 0;
+  for (const file of files) {
+    if (!/\.(jpg|jpeg|png|webp|tif|tiff)$/i.test(file.name)) continue;
+    if (existing.has(file.name)) continue;
+    const url = URL.createObjectURL(file);
+    images.push({ name: file.name, url, tag: detectTag(file.name), file });
+    existing.add(file.name);
+    added++;
+  }
+  updateImgStatus();
+  if (added) toast(`✅ ${added} image(s) ajoutée(s)`);
+}
+
+async function loadZip(file) {
+  try {
+    toast("📦 Extraction du ZIP...");
+    const zip = await JSZip.loadAsync(file);
+    const existing = new Set(images.map(i => i.name));
+    let added = 0;
+    for (const [path, entry] of Object.entries(zip.files)) {
+      if (entry.dir) continue;
+      const name = path.split('/').pop();
+      if (!/\.(jpg|jpeg|png|webp|tif|tiff)$/i.test(name)) continue;
+      if (existing.has(name)) continue;
+      const blob = await entry.async('blob');
+      const url = URL.createObjectURL(blob);
+      images.push({ name, url, tag: detectTag(name), file: new File([blob], name) });
+      existing.add(name);
+      added++;
+    }
+    updateImgStatus();
+    toast(`✅ ${added} images extraites du ZIP`);
+    checkReady();
+  } catch(e) { toast("❌ Erreur ZIP: " + e.message); }
+}
+
+function updateImgStatus() {
+  document.getElementById('img-status').innerHTML = images.length
+    ? `<span class="badge badge-purple">✓ ${images.length} images chargées</span>` : '';
+  checkReady();
+}
+
+function clearAll() {
+  catalog = []; images = []; results = [];
+  document.getElementById('excel-status').innerHTML = '';
+  document.getElementById('img-status').innerHTML = '';
+  document.getElementById('api-key').value = '';
+  checkReady();
+  toast("🗑 Tout effacé");
+}
+
+// ─── AI MATCHING ─────────────────────────────────────────────────────────────
+async function runMatching() {
+  const apiKey = document.getElementById('api-key').value.trim();
+  if (!apiKey) { toast("⚠️ Entrez votre clé API Claude"); return; }
+  if (!catalog.length || !images.length) { toast("⚠️ Chargez catalogue et images"); return; }
+
+  document.getElementById('btn-run').disabled = true;
+  document.getElementById('btn-run').textContent = '⏳ Matching en cours...';
+  document.getElementById('progress-wrap').style.display = 'block';
+
+  results = [];
+  const BATCH = 12;
+
+  for (let i = 0; i < images.length; i += BATCH) {
+    const batch = images.slice(i, i + BATCH);
+    const pct = Math.round((i / images.length) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-pct').textContent = pct + '%';
+    document.getElementById('progress-txt').textContent = `Lot ${Math.floor(i/BATCH)+1}/${Math.ceil(images.length/BATCH)} — ${i+1} à ${Math.min(i+BATCH, images.length)} sur ${images.length}`;
+
+    try {
+      const batchResults = await matchBatch(batch, catalog, apiKey);
+      results.push(...batchResults);
+    } catch(e) {
+      console.error(e);
+      batch.forEach(img => results.push({ image: img, code: null, confidence: 0, reasoning: 'Erreur: ' + e.message, tag: img.tag }));
+    }
+
+    if (i + BATCH < images.length) await sleep(1200);
+  }
+
+  document.getElementById('progress-fill').style.width = '100%';
+  document.getElementById('progress-pct').textContent = '100%';
+
+  rebuildNewNames();
+  updateStats();
+
+  document.getElementById('btn-run').disabled = false;
+  document.getElementById('btn-run').textContent = '🚀 Lancer le mapping';
+
+  goStep(2);
+  renderResults();
+  toast(`🎉 ${results.filter(r=>r.code).length}/${results.length} images associées !`);
+}
+
+async function matchBatch(batch, catalog, apiKey) {
+  const model = document.getElementById('model-select').value;
+  const catalogStr = catalog.slice(0, 200).map(e => `${e.code} | ${e.titre}`).join('\n');
+  const imagesStr = batch.map(img => `- "${img.name}"`).join('\n');
+
+  const prompt = `Tu es un expert en matching de photos produits pour un e-commerce de carrelage (Carrelage Signature).
+
+CATALOGUE PRODUITS (format: CODE | TITRE):
+${catalogStr}
+
+IMAGES À ASSOCIER:
+${imagesStr}
+
+RÈGLES DE MATCHING:
+1. PRIORITÉ ABSOLUE: extrait le code depuis le PRÉFIXE du nom fichier (ex: NC008_AMB_... → NC008, RE356_... → RE356)
+2. Traductions: GRIS=GREY, BLANCO=WHITE, TEJA=TERRACOTTA, NEGRO=BLACK, VERDE=GREEN, BEIGE=BEIGE
+3. Dimensions flexibles: 22=22,5=22.5 | 15x30=30x15 | ignorer les dimensions si code trouvé
+4. Ignore ces préfixes fournisseur: XLIGHT_, DSC, IMG_, planche_, photo_, pic_
+5. Photos AMB avec PLUSIEURS couleurs dans le nom → crée UN objet par couleur détectée
+6. Noms contenant A.D, ANTID, ANTISLIP, R11 → cherche code avec suffixe AD ou A.D
+7. Noms génériques sans indice (IMG_1234, DSC0001) → matched_code = null
+8. En cas de doute → matched_code = null, confidence < 0.5
+9. Tag: packshot=produit seul fond neutre, detail=zoom texture/biais, swatch=ensemble carreaux, dimension=schéma/cotes, ambiance=mise en situation, lifestyle=éditorial humain, pastilles=vignette couleur, KO=non identifié
+
+Réponds UNIQUEMENT avec un tableau JSON valide, sans markdown ni texte autour:
+[{"image_name":"nom.jpg","matched_code":"CODE ou null","confidence":0.95,"reasoning":"raison courte","tag":"AMB"}]`;
+
+  const resp = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 8192,
+          responseMimeType: 'application/json'
+        }
+      })
+    }
+  );
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    const msg = err.error?.message || `Erreur ${resp.status}`;
+    if (resp.status === 429) throw new Error('Limite de requêtes atteinte — réessayez dans quelques secondes');
+    if (resp.status === 503) throw new Error('Modèle surchargé (503) — réessayez dans quelques minutes');
+    throw new Error(msg);
+  }
+
+  const data = await resp.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const clean = text.replace(/```json|```/g, '').trim();
+
+  let parsed;
+  try { parsed = JSON.parse(clean); }
+  catch {
+    const m = clean.match(/\[[\s\S]*\]/);
+    if (m) parsed = JSON.parse(m[0]);
+    else throw new Error('Réponse JSON invalide de Gemini');
+  }
+
+  return parsed.map(r => {
+    const img = batch.find(i => i.name === r.image_name) || batch[0];
+    return {
+      image: img,
+      code: (r.matched_code === 'null' || !r.matched_code) ? null : r.matched_code,
+      confidence: r.confidence || 0,
+      reasoning: r.reasoning || '',
+      tag: r.tag || img.tag
+    };
+  });
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─── RESULTS ─────────────────────────────────────────────────────────────────
+function updateStats() {
+  const total = results.length;
+  const matched = results.filter(r => r.code && r.confidence >= 0.85).length;
+  const low = results.filter(r => r.code && r.confidence < 0.85).length;
+  const unmatched = results.filter(r => !r.code).length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-matched').textContent = matched;
+  document.getElementById('stat-low').textContent = low;
+  document.getElementById('stat-unmatched').textContent = unmatched;
+}
+
+function renderResults() {
+  const filter = document.getElementById('filter-status').value;
+  const search = document.getElementById('filter-search').value.toLowerCase();
+
+  let filtered = results.filter(r => {
+    if (filter === 'matched' && !(r.code && r.confidence >= 0.85)) return false;
+    if (filter === 'low' && !(r.code && r.confidence < 0.85)) return false;
+    if (filter === 'unmatched' && r.code) return false;
+    if (search && !r.image.name.toLowerCase().includes(search) && !(r.code||'').toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  const tbody = document.getElementById('results-body');
+  tbody.innerHTML = filtered.map((r, fi) => {
+    const idx = results.indexOf(r);
+    const pct = Math.round(r.confidence * 100);
+    const color = confColor(r.confidence);
+    return `<tr>
+      <td><div class="filename" title="${r.image.name}">${r.image.name}</div></td>
+      <td><div class="thumb-wrap" onmouseenter="showThumbPopup(event,this)" onmouseleave="hideThumbPopup()"><img src="${r.image.url}" class="thumb" alt="" loading="lazy"><img src="${r.image.url}" class="thumb-popup" id="thumb-popup" alt=""></div></td>
+      <td><input type="text" class="code-input" value="${r.code||''}" onchange="updateCode(${idx}, this.value)" placeholder="code…"></td>
+      <td>
+        <select onchange="updateTag(${idx}, this.value)">
+          ${TAGS.map(t => `<option value="${t}"${r.tag===t?' selected':''}>${t}</option>`).join('')}
+        </select>
+      </td>
+      <td><span class="newname ${r.newName?'ok':'none'}">${r.newName||'—'}</span></td>
+      <td>
+        <div class="conf-wrap">
+          <div class="conf-bar"><div class="conf-fill" style="width:${pct}%;background:${color}"></div></div>
+          <span class="conf-pct" style="color:${color}">${pct}%</span>
+        </div>
+      </td>
+      <td><div class="reasoning" title="${r.reasoning}">${r.reasoning}</div></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateCode(idx, code) {
+  results[idx].code = code || null;
+  rebuildNewNames();
+  updateStats();
+  renderResults();
+}
+
+function updateTag(idx, tag) {
+  results[idx].tag = tag;
+  rebuildNewNames();
+  renderResults();
+}
+
+// ─── EXPORT ZIP ──────────────────────────────────────────────────────────────
+async function exportZip() {
+  const toExport = results.filter(r => r.code && r.newName);
+  if (!toExport.length) { toast("⚠️ Aucune image associée à exporter"); return; }
+  toast(`⏳ Traitement de ${toExport.length} images...`, 10000);
+
+  const zip = new JSZip();
+  let done = 0;
+  for (const r of toExport) {
+    try {
+      const blob = await processImage(r.image.file);
+      zip.file(r.newName, blob);
+      done++;
+    } catch(e) { console.warn('Skip', r.image.name, e); }
+  }
+
+  const content = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(content);
+  a.download = 'photos_renommees_1000x1000.zip';
+  a.click();
+  toast(`✅ ${done} images exportées en 1000×1000 !`);
+}
+
+async function processImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1000; canvas.height = 1000;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 1000, 1000);
+      const scale = Math.min(1000 / img.width, 1000 / img.height);
+      const w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, (1000 - w) / 2, (1000 - h) / 2, w, h);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas vide')), 'image/jpeg', 0.92);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+// ─── MODE SWITCHER ────────────────────────────────────────────────────────────
+let currentMode = 'matching';
+
+function switchMode(mode) {
+  currentMode = mode;
+  document.getElementById('mode-btn-matching').classList.toggle('active', mode === 'matching');
+  document.getElementById('mode-btn-studio').classList.toggle('active', mode === 'studio');
+  document.getElementById('matching-nav').style.display = mode === 'matching' ? 'block' : 'none';
+  ['panel-0','panel-1','panel-2'].forEach(id => {
+    document.getElementById(id).style.display = 'none';
+  });
+  document.getElementById('panel-studio').style.display = mode === 'studio' ? 'block' : 'none';
+  if (mode === 'matching') {
+    ['panel-0','panel-1','panel-2'].forEach((id, i) => {
+      document.getElementById(id).style.display = i === currentStep ? 'block' : 'none';
+    });
+  }
+}
+
+// ─── STUDIO PHOTO ─────────────────────────────────────────────────────────────
+// [{name, url, file, status:'ok'|'proposed'|'modified', proposedUrl, croppedUrl, croppedBlob, cropData, w, h}]
+let studioImages = [];
+let cropTarget = null;
+let cropState = {};
+let studioTab = 'all';
+
+function dzDropStudio(e) {
+  e.preventDefault();
+  dzLeave('dz-studio');
+  loadStudioImages({ files: e.dataTransfer.files });
+}
+
+async function loadStudioImages(input) {
+  const files = Array.from(input.files || []);
+  const existing = new Set(studioImages.map(i => i.name));
+  let added = 0;
+  for (const file of files) {
+    if (!/\.(jpg|jpeg|png|webp|tif|tiff)$/i.test(file.name)) continue;
+    if (existing.has(file.name)) continue;
+    const url = URL.createObjectURL(file);
+    const dims = await getImageDimensions(url);
+    const alreadyOk = dims.w === 1000 && dims.h === 1000;
+    const tag = detectTag(file.name);
+    const useCover = isCoverMode(tag);
+    let proposedUrl = null;
+    if (!alreadyOk) {
+      proposedUrl = await generateProposal(file, url, useCover);
+    }
+    studioImages.push({
+      name: file.name, url, file,
+      w: dims.w, h: dims.h,
+      tag, isAmb: useCover,
+      status: alreadyOk ? 'ok' : 'proposed',
+      proposedUrl,
+      croppedUrl: null, croppedBlob: null, cropData: null
+    });
+    existing.add(file.name);
+    added++;
+  }
+  if (added) {
+    document.getElementById('studio-status').innerHTML = `<span class="badge badge-purple">✓ ${studioImages.length} photo(s)</span>`;
+    document.getElementById('studio-grid-wrap').style.display = 'block';
+    renderStudioGrid();
+    toast(`✅ ${added} photo(s) analysée(s)`);
+  }
+  if (input.value !== undefined) input.value = '';
+}
+
+function getImageDimensions(url) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.src = url;
+  });
+}
+
+async function generateProposal(file, url, isAmb) {
+  // AMB = cover (recadrage centré, pas de fond blanc), autres = contain (fond blanc)
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1000; canvas.height = 1000;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 1000, 1000);
+      if (isAmb) {
+        // Cover : remplit tout le carré, recadrage centré
+        const scale = Math.max(1000 / img.width, 1000 / img.height);
+        const w = img.width * scale, h = img.height * scale;
+        ctx.drawImage(img, (1000 - w) / 2, (1000 - h) / 2, w, h);
+      } else {
+        // Contain : image entière avec fond blanc
+        const scale = Math.min(1000 / img.width, 1000 / img.height);
+        const w = img.width * scale, h = img.height * scale;
+        ctx.drawImage(img, (1000 - w) / 2, (1000 - h) / 2, w, h);
+      }
+      canvas.toBlob(blob => {
+        resolve(URL.createObjectURL(blob));
+      }, 'image/jpeg', 0.92);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function setStudioTab(tab) {
+  studioTab = tab;
+  document.querySelectorAll('.studio-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  renderStudioGrid();
+}
+
+function updateStudioStats() {
+  const ok = studioImages.filter(i => i.status === 'ok').length;
+  const modified = studioImages.filter(i => i.status === 'modified').length;
+  const proposed = studioImages.filter(i => i.status === 'proposed').length;
+  document.getElementById('count-ok').textContent = ok;
+  document.getElementById('count-modified').textContent = modified;
+  document.getElementById('count-proposed').textContent = proposed;
+  document.getElementById('studio-count').textContent = studioImages.length;
+  document.getElementById('tab-count-all').textContent = studioImages.length;
+  document.getElementById('tab-count-ok').textContent = ok;
+  document.getElementById('tab-count-proposed').textContent = proposed;
+  document.getElementById('tab-count-modified').textContent = modified;
+}
+
+function renderStudioGrid() {
+  updateStudioStats();
+  const filtered = studioImages.filter(img => {
+    if (studioTab === 'ok') return img.status === 'ok';
+    if (studioTab === 'proposed') return img.status === 'proposed';
+    if (studioTab === 'modified') return img.status === 'modified';
+    return true;
+  });
+
+  const grid = document.getElementById('studio-grid');
+  grid.innerHTML = filtered.map(img => {
+    const i = studioImages.indexOf(img);
+    const displayUrl = img.croppedUrl || img.proposedUrl || img.url;
+    const isOk = img.status === 'ok';
+    const isModified = img.status === 'modified';
+    const isProposed = img.status === 'proposed';
+
+    const badgeHtml = isOk
+      ? '<span class="status-badge ok">✓ Déjà 1000×1000</span>'
+      : isModified
+      ? '<span class="status-badge modified">✂ Modifiée</span>'
+      : '<span class="status-badge proposed">⏳ Proposition auto</span>';
+
+    const modeLabel = img.isAmb ? `🌅 Cover (${img.tag})` : `⬜ Contain (${img.tag})`;
+    const dimLabel = isOk ? '' : `<div style="font-size:10px;color:var(--text2);padding:2px 8px">${img.w}×${img.h}px → 1000×1000 · ${modeLabel}</div>`;
+
+    const actions = isOk
+      ? `<button class="btn btn-sm" style="background:var(--red-light);color:var(--red);font-size:11px;flex:0" onclick="removeStudio(${i})">✕</button>`
+      : `<button class="btn btn-secondary btn-sm" style="flex:1;font-size:11px" onclick="openGallery(${i})">👁 Voir</button>
+         <button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="openCrop(${i})">✂️</button>
+         <button class="btn btn-sm" style="background:var(--red-light);color:var(--red);font-size:11px" onclick="removeStudio(${i})">✕</button>`;
+
+    return `<div class="studio-card ${isOk ? 'already-ok' : isModified ? 'modified' : ''}">
+      <img src="${displayUrl}" alt="${img.name}" loading="lazy">
+      ${badgeHtml}
+      ${dimLabel}
+      <div class="studio-name" title="${img.name}">${img.name}</div>
+      <div class="studio-actions">${actions}</div>
+    </div>`;
+  }).join('');
+}
+
+function removeStudio(i) {
+  studioImages.splice(i, 1);
+  if (!studioImages.length) document.getElementById('studio-grid-wrap').style.display = 'none';
+  renderStudioGrid();
+}
+
+function clearStudio() {
+  studioImages = [];
+  document.getElementById('studio-grid-wrap').style.display = 'none';
+  document.getElementById('studio-status').innerHTML = '';
+  toast('🗑 Studio vidé');
+}
+
+// ─── GALERIE DE RÉVISION ─────────────────────────────────────────────────────
+let galIndex = 0;
+let galList = []; // indices dans studioImages des photos à réviser
+
+function openGallery(startIdx) {
+  // Si aucune image chargée
+  if (!studioImages.length) { toast("⚠️ Chargez des images d'abord"); return; }
+  // Construire la liste des photos à réviser (tout sauf déjà 1000×1000)
+  galList = studioImages
+    .map((img, i) => i)
+    .filter(i => studioImages[i].status !== 'ok');
+  // Si toutes sont déjà OK, ouvrir quand même avec toutes
+  if (!galList.length) {
+    galList = studioImages.map((img, i) => i);
+    toast('ℹ️ Toutes les photos sont déjà en 1000×1000');
+  }
+  // Positionner sur la photo cliquée si précisée
+  if (startIdx !== undefined) {
+    const pos = galList.indexOf(Number(startIdx));
+    galIndex = pos >= 0 ? pos : 0;
+  } else {
+    galIndex = 0;
+  }
+  const modal = document.getElementById('gallery-modal');
+  modal.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;flex-direction:column;';
+  galRender();
+}
+
+function closeGallery() {
+  document.getElementById('gallery-modal').style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;flex-direction:column;';
+  renderStudioGrid();
+}
+
+function galRender() {
+  const idx = galList[galIndex];
+  const img = studioImages[idx];
+  document.getElementById('gal-counter').textContent = `${galIndex + 1} / ${galList.length}`;
+  document.getElementById('gal-filename').textContent = img.name;
+  document.getElementById('gal-original').src = img.url;
+  document.getElementById('gal-dims').textContent = `${img.w} × ${img.h} px · Tag : ${img.tag} · Mode : ${img.isAmb ? '🌅 Cover' : '⬜ Contain'}`;
+  document.getElementById('gal-proposed').src = img.croppedUrl || img.proposedUrl || img.url;
+}
+
+function galNav(dir) {
+  galIndex = (galIndex + dir + galList.length) % galList.length;
+  galRender();
+}
+
+function galleryKey(e) {
+  if (e.key === 'ArrowRight') galNav(1);
+  if (e.key === 'ArrowLeft') galNav(-1);
+  if (e.key === 'Escape') closeGallery();
+}
+
+function galAdjust() {
+  const idx = galList[galIndex];
+  closeGallery();
+  openCrop(idx);
+}
+
+// ─── CROP ─────────────────────────────────────────────────────────────────────
+function openCrop(idx) {
+  cropTarget = idx;
+  const img = studioImages[idx];
+  const modal = document.getElementById('crop-modal');
+  const cropImg = document.getElementById('crop-img');
+  modal.style.display = 'flex';
+  cropImg.src = img.url;
+  cropImg.onload = () => initCropBox(cropImg);
+}
+
+function initCropBox(cropImg) {
+  const W = cropImg.offsetWidth, H = cropImg.offsetHeight;
+  const size = Math.min(W, H); // Cadre maximum : le plus grand carré possible
+  cropState = { x: (W - size) / 2, y: (H - size) / 2, size, imgW: W, imgH: H, dragging: false, resizing: false };
+  updateCropBox();
+  setupCropEvents(cropImg);
+}
+
+function updateCropBox() {
+  const box = document.getElementById('crop-box');
+  const { x, y, size } = cropState;
+  box.style.left = x + 'px';
+  box.style.top = y + 'px';
+  box.style.width = size + 'px';
+  box.style.height = size + 'px';
+}
+
+function setupCropEvents(cropImg) {
+  const container = document.getElementById('crop-container');
+  const box = document.getElementById('crop-box');
+
+  // Handle resize via corner
+  const handle = document.createElement('div');
+  handle.style.cssText = 'position:absolute;bottom:-6px;right:-6px;width:14px;height:14px;background:var(--purple);border-radius:50%;cursor:se-resize;z-index:2';
+  box.innerHTML = '';
+  box.appendChild(handle);
+
+  handle.onmousedown = (e) => {
+    e.stopPropagation();
+    cropState.resizing = true;
+    cropState.startX = e.clientX;
+    cropState.startSize = cropState.size;
+  };
+
+  box.onmousedown = (e) => {
+    if (e.target === handle) return;
+    cropState.dragging = true;
+    cropState.startX = e.clientX - cropState.x;
+    cropState.startY = e.clientY - cropState.y;
+  };
+
+  document.onmousemove = (e) => {
+    if (cropState.dragging) {
+      let nx = e.clientX - cropState.startX;
+      let ny = e.clientY - cropState.startY;
+      nx = Math.max(0, Math.min(nx, cropState.imgW - cropState.size));
+      ny = Math.max(0, Math.min(ny, cropState.imgH - cropState.size));
+      cropState.x = nx; cropState.y = ny;
+      updateCropBox();
+    }
+    if (cropState.resizing) {
+      const delta = e.clientX - cropState.startX;
+      let ns = Math.max(50, cropState.startSize + delta);
+      ns = Math.min(ns, cropState.imgW - cropState.x, cropState.imgH - cropState.y);
+      cropState.size = ns;
+      updateCropBox();
+    }
+  };
+
+  document.onmouseup = () => { cropState.dragging = false; cropState.resizing = false; };
+  document.addEventListener('keydown', (e) => {
+    const modal = document.getElementById('gallery-modal');
+    if (modal && modal.style.display === 'flex') {
+      if (e.key === 'ArrowRight') { e.preventDefault(); galNav(1); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); galNav(-1); }
+      if (e.key === 'Escape') closeGallery();
+    }
+  });
+}
+
+function resetCrop() {
+  const cropImg = document.getElementById('crop-img');
+  initCropBox(cropImg);
+}
+
+function applyCrop() {
+  const img = studioImages[cropTarget];
+  const cropImg = document.getElementById('crop-img');
+  const { x, y, size, imgW, imgH } = cropState;
+
+  // Calculer les coordonnées réelles sur l'image originale
+  const realImg = new Image();
+  realImg.onload = () => {
+    const scaleX = realImg.width / imgW;
+    const scaleY = realImg.height / imgH;
+    const rx = x * scaleX, ry = y * scaleY;
+    const rSize = size * Math.min(scaleX, scaleY);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 1000; canvas.height = 1000;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, 1000, 1000);
+    ctx.drawImage(realImg, rx, ry, rSize, rSize, 0, 0, 1000, 1000);
+
+    canvas.toBlob(blob => {
+      img.cropData = { x: rx, y: ry, size: rSize };
+      img.croppedUrl = URL.createObjectURL(blob);
+      img.croppedBlob = blob;
+      img.status = 'modified';
+      renderStudioGrid();
+      closeCrop();
+      toast('✅ Recadrage appliqué !');
+    }, 'image/jpeg', 0.92);
+  };
+  realImg.src = img.url;
+}
+
+function closeCrop() {
+  document.getElementById('crop-modal').style.display = 'none';
+  document.onmousemove = null;
+  document.onmouseup = null;
+  cropTarget = null;
+}
+
+// ─── EXPORT STUDIO ────────────────────────────────────────────────────────────
+async function exportStudioZip() {
+  if (!studioImages.length) { toast('⚠️ Aucune image dans le studio'); return; }
+  toast(`⏳ Export de ${studioImages.length} images...`, 15000);
+  const zip = new JSZip();
+  let done = 0;
+
+  for (const img of studioImages) {
+    try {
+      let blob;
+      const ext = img.status === 'ok' ? img.name.split('.').pop().toLowerCase() : 'jpg';
+      const newName = img.name.replace(/\.[^.]+$/, '') + '.' + ext;
+
+      if (img.status === 'ok') {
+        // Image déjà 1000×1000 : on l'exporte telle quelle sans traitement
+        blob = img.file;
+      } else if (img.croppedBlob) {
+        // Recadrage manuel appliqué
+        blob = img.croppedBlob;
+      } else {
+        // Proposition auto acceptée (pas de modification manuelle)
+        blob = await processImageStudio(img.file, img.isAmb ? 'cover' : 'contain');
+      }
+      zip.file(newName, blob);
+      done++;
+    } catch(e) { console.warn('Skip', img.name, e); }
+  }
+
+  const content = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(content);
+  a.download = 'studio_1000x1000.zip';
+  a.click();
+  toast(`✅ ${done} images exportées !`);
+}
+
+async function processImageStudio(file, mode) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1000; canvas.height = 1000;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 1000, 1000);
+
+      if (mode === 'cover') {
+        // Recadrage centré — remplit tout le carré
+        const scale = Math.max(1000 / img.width, 1000 / img.height);
+        const w = img.width * scale, h = img.height * scale;
+        ctx.drawImage(img, (1000 - w) / 2, (1000 - h) / 2, w, h);
+      } else {
+        // Contain — image entière avec fond blanc
+        const scale = Math.min(1000 / img.width, 1000 / img.height);
+        const w = img.width * scale, h = img.height * scale;
+        ctx.drawImage(img, (1000 - w) / 2, (1000 - h) / 2, w, h);
+      }
+
+      URL.revokeObjectURL(url);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas vide')), 'image/jpeg', 0.92);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+// ─── THUMB POPUP ─────────────────────────────────────────────────────────────
+function showThumbPopup(e, wrap) {
+  const popup = wrap.querySelector('.thumb-popup');
+  if (!popup) return;
+  const rect = wrap.getBoundingClientRect();
+  const popupSize = 280;
+  let left = rect.left + rect.width / 2 - popupSize / 2;
+  let top = rect.top - popupSize - 10;
+  // Si trop haut, afficher en dessous
+  if (top < 10) top = rect.bottom + 10;
+  // Garder dans l'écran horizontalement
+  left = Math.max(10, Math.min(left, window.innerWidth - popupSize - 10));
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+  popup.style.display = 'block';
+}
+function hideThumbPopup() {
+  document.querySelectorAll('.thumb-popup').forEach(p => p.style.display = 'none');
+}
+
+// ─── SUPPRESSION DE FOND (REMBG LOCAL) ───────────────────────────────────────
+let bgRemoveImages = [];
+const REMBG_URL = 'http://localhost:5050';
+
+// Vérification statut serveur au chargement
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(checkServer, 800);
+});
+
+async function checkServer() {
+  const dot = document.getElementById('server-dot');
+  const txt = document.getElementById('server-status-txt');
+  const sub = document.getElementById('server-status-sub');
+  dot.style.background = '#FA9B3B';
+  txt.textContent = 'Connexion au serveur Rembg...';
+  try {
+    const resp = await fetch(REMBG_URL + '/status', { signal: AbortSignal.timeout(3000) });
+    if (resp.ok) {
+      dot.style.background = '#1D9E75';
+      txt.textContent = '✓ Serveur Rembg connecté — prêt à traiter';
+      sub.textContent = 'http://localhost:5050 · Illimité & gratuit';
+    } else { throw new Error(); }
+  } catch {
+    dot.style.background = '#E24B4A';
+    txt.textContent = '✗ Serveur non détecté';
+    sub.textContent = 'Lancez serveur_rembg.py dans le Terminal puis cliquez sur ↺ Vérifier';
+  }
+}
+
+function dzDropBgRemove(e) {
+  e.preventDefault();
+  dzLeave('dz-bgremove');
+  loadBgRemoveImages({ files: e.dataTransfer.files });
+}
+
+function loadBgRemoveImages(input) {
+  const files = Array.from(input.files || []);
+  const existing = new Set(bgRemoveImages.map(i => i.name));
+  let added = 0;
+  files.forEach(file => {
+    if (!/\.(jpg|jpeg|png|webp)$/i.test(file.name)) return;
+    if (existing.has(file.name)) return;
+    const url = URL.createObjectURL(file);
+    bgRemoveImages.push({ name: file.name, file, url, resultUrl: null, resultBlob: null, status: 'pending' });
+    existing.add(file.name);
+    added++;
+  });
+  if (added) {
+    document.getElementById('bgremove-status').innerHTML = `<span class="badge badge-purple">✓ ${bgRemoveImages.length} photo(s)</span>`;
+    document.getElementById('bgremove-grid-wrap').style.display = 'block';
+    document.getElementById('bgremove-total').textContent = bgRemoveImages.length;
+    renderBgGrid();
+    toast(`✅ ${added} photo(s) ajoutée(s)`);
+  }
+  if (input.value !== undefined) input.value = '';
+}
+
+function clearBgRemove() {
+  bgRemoveImages = [];
+  document.getElementById('bgremove-grid-wrap').style.display = 'none';
+  document.getElementById('bgremove-status').innerHTML = '';
+  toast('🗑 Liste vidée');
+}
+
+function renderBgGrid() {
+  const grid = document.getElementById('bgremove-grid');
+  const done = bgRemoveImages.filter(i => i.status === 'done').length;
+  document.getElementById('bgremove-done').textContent = done;
+  document.getElementById('btn-export-bg').style.display = done > 0 ? 'inline-flex' : 'none';
+
+  grid.innerHTML = bgRemoveImages.map((img, i) => {
+    const statusBadge = img.status === 'done'
+      ? '<span style="background:var(--green-light);color:var(--green);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">✓ Traité</span>'
+      : img.status === 'processing'
+      ? '<span style="background:var(--purple-light);color:var(--purple);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">⏳ En cours...</span>'
+      : img.status === 'error'
+      ? '<span style="background:var(--red-light);color:var(--red);font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">✕ Erreur</span>'
+      : '<span style="background:#F1EFE8;color:#5F5E5A;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px">En attente</span>';
+
+    const checkerBg = 'repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%) 0 0 / 16px 16px';
+
+    return `<div class="bg-card">
+      <div class="bg-card-imgs">
+        <div>
+          <img src="${img.url}" style="width:100%;aspect-ratio:1;object-fit:contain;background:#fff;display:block">
+          <div class="bg-label">Original</div>
+        </div>
+        <div>
+          <img src="${img.resultUrl || ''}" style="width:100%;aspect-ratio:1;object-fit:contain;background:${img.resultUrl ? checkerBg : '#f5f5f0'};display:block${img.resultUrl ? '' : ';opacity:0.3'}">
+          <div class="bg-label">Sans fond</div>
+        </div>
+      </div>
+      <div class="bg-card-info">
+        <div class="bg-card-name" title="${img.name}">${img.name}</div>
+        <div style="margin-top:5px;display:flex;justify-content:space-between;align-items:center">
+          ${statusBadge}
+          <div class="bg-card-actions">
+            ${img.status !== 'processing' ? `<button class="btn btn-secondary btn-sm" style="font-size:11px" onclick="processSingleBgRemove(${i})">🪄 Traiter</button>` : ''}
+            ${img.resultBlob ? `<button class="btn btn-green btn-sm" style="font-size:11px" onclick="downloadSingle(${i})">⬇</button>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function processSingleBgRemove(idx) {
+  const img = bgRemoveImages[idx];
+  img.status = 'processing';
+  renderBgGrid();
+
+  try {
+    const blob = await removeBackground(img.file);
+    img.resultBlob = blob;
+    img.resultUrl = URL.createObjectURL(blob);
+    img.status = 'done';
+  } catch(e) {
+    img.status = 'error';
+    img.error = e.message;
+    toast('❌ Erreur : ' + e.message);
+  }
+  renderBgGrid();
+}
+
+async function processAllBgRemove() {
+  const pending = bgRemoveImages.filter(i => i.status === 'pending' || i.status === 'error');
+  if (!pending.length) { toast('⚠️ Toutes les images sont déjà traitées'); return; }
+  toast(`⏳ Traitement de ${pending.length} images...`, 30000);
+  for (let i = 0; i < bgRemoveImages.length; i++) {
+    if (bgRemoveImages[i].status !== 'pending' && bgRemoveImages[i].status !== 'error') continue;
+    await processSingleBgRemove(i);
+    await new Promise(r => setTimeout(r, 300));
+  }
+  toast('✅ Toutes les images traitées !');
+}
+
+async function removeBackground(file) {
+  const bgFill = document.querySelector('input[name="bg-fill"]:checked').value;
+  const formData = new FormData();
+  formData.append('image', file);
+  if (bgFill !== 'transparent') {
+    const color = bgFill === 'white' ? '#ffffff' : document.getElementById('bg-custom-color').value;
+    formData.append('bg_color', color);
+  } else {
+    formData.append('bg_color', 'transparent');
+  }
+
+  const resp = await fetch(REMBG_URL + '/remove-bg', {
+    method: 'POST',
+    body: formData,
+    signal: AbortSignal.timeout(60000)
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    if (resp.status === 0 || !resp.status) throw new Error('Serveur non accessible — lancez serveur_rembg.py');
+    throw new Error(err.error || `Erreur ${resp.status}`);
+  }
+  return await resp.blob();
+}
+
+async function addBackground(pngBlob, color) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(pngBlob);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width; canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      const mime = color === '#ffffff' ? 'image/jpeg' : 'image/png';
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas vide')), mime, 0.92);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function downloadSingle(idx) {
+  const img = bgRemoveImages[idx];
+  if (!img.resultBlob) return;
+  const bgFill = document.querySelector('input[name="bg-fill"]:checked').value;
+  const ext = bgFill === 'transparent' ? 'png' : 'jpg';
+  const name = img.name.replace(/\.[^.]+$/, '') + '_no_bg.' + ext;
+  const a = document.createElement('a');
+  a.href = img.resultUrl;
+  a.download = name;
+  a.click();
+}
+
+async function exportBgRemoveZip() {
+  const done = bgRemoveImages.filter(i => i.status === 'done');
+  if (!done.length) { toast('⚠️ Aucune image traitée'); return; }
+  const bgFill = document.querySelector('input[name="bg-fill"]:checked').value;
+  const ext = bgFill === 'transparent' ? 'png' : 'jpg';
+  const zip = new JSZip();
+  done.forEach(img => {
+    const name = img.name.replace(/\.[^.]+$/, '') + '_no_bg.' + ext;
+    zip.file(name, img.resultBlob);
+  });
+  const content = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(content);
+  a.download = 'sans_fond.zip';
+  a.click();
+  toast(`✅ ${done.length} images exportées !`);
+}
+
+</script>
+</body>
+</html>
