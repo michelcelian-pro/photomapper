@@ -841,7 +841,8 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans markdown ni texte autour:
         generationConfig: {
           temperature: 0.1,
           maxOutputTokens: 8192,
-          responseMimeType: 'application/json'
+          responseMimeType: 'application/json',
+          thinkingConfig: { thinkingBudget: 0 }
         }
       })
     }
@@ -856,7 +857,8 @@ Réponds UNIQUEMENT avec un tableau JSON valide, sans markdown ni texte autour:
   }
 
   const data = await resp.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const parts = data.candidates?.[0]?.content?.parts || [];
+  const text = (parts.find(p => !p.thought) || parts[0] || {}).text || '';
   const clean = text.replace(/```json|```/g, '').trim();
 
   let parsed;
