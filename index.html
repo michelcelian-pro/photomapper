@@ -948,16 +948,38 @@ function updateTag(idx, tag) {
 async function exportZip() {
   const toExport = results.filter(r => r.code && r.newName);
   if (!toExport.length) { toast("⚠️ Aucune image associée à exporter"); return; }
-  toast(`⏳ Traitement de ${toExport.length} images...`, 10000);
+  toast(`⏳ Traitement de ${toExport.length} images...`, 15000);
 
   const zip = new JSZip();
   let done = 0;
+  let errors = 0;
   for (const r of toExport) {
     try {
-      const blob = await processImage(r.image.file);
-      zip.file(r.newName, blob);
-      done++;
-    } catch(e) { console.warn('Skip', r.image.name, e); }
+      // Essai 1 : via le fichier original
+      let blob = null;
+      if (r.image.file && r.image.file.size > 0) {
+        try { blob = await processImage(r.image.file); } catch(e) {}
+      }
+      // Essai 2 : via l'URL en mémoire
+      if (!blob && r.image.url) {
+        blob = await processImageFromUrl(r.image.url);
+      }
+      if (blob) {
+        zip.file(r.newName, blob);
+        done++;
+      } else {
+        errors++;
+        console.warn('Impossible de traiter:', r.image.name);
+      }
+    } catch(e) {
+      errors++;
+      console.warn('Skip', r.image.name, e);
+    }
+  }
+
+  if (done === 0) {
+    toast("❌ Aucune image exportée — rechargez la page et relancez le matching");
+    return;
   }
 
   const content = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
@@ -965,7 +987,27 @@ async function exportZip() {
   a.href = URL.createObjectURL(content);
   a.download = 'photos_renommees_1000x1000.zip';
   a.click();
-  toast(`✅ ${done} images exportées en 1000×1000 !`);
+  toast(`✅ ${done} images exportées${errors > 0 ? ` (${errors} ignorées)` : ''} !`);
+}
+
+async function processImageFromUrl(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1000; canvas.height = 1000;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 1000, 1000);
+      const scale = Math.min(1000 / img.width, 1000 / img.height);
+      const w = img.width * scale, h = img.height * scale;
+      ctx.drawImage(img, (1000 - w) / 2, (1000 - h) / 2, w, h);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas vide')), 'image/jpeg', 0.92);
+    };
+    img.onerror = reject;
+    img.crossOrigin = 'anonymous';
+    img.src = url;
+  });
 }
 
 async function processImage(file) {
