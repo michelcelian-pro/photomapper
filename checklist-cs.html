@@ -76,6 +76,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .btn-icon:hover{background:var(--bg);color:var(--text);}
 .btn-icon.delete:hover{background:var(--bug-light);color:var(--bug);}
 
+/* DRAG HANDLE */
+.drag-handle{width:20px;height:24px;display:flex;align-items:center;justify-content:center;color:#B8AFA4;font-size:14px;cursor:grab;flex-shrink:0;user-select:none;line-height:1;}
+.drag-handle:hover{color:var(--edit);}
+.drag-handle:active{cursor:grabbing;}
+.dragging{opacity:.5;}
+.drag-over-top{border-top:2px dashed var(--edit) !important;}
+
 /* ITEM */
 .item{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;overflow:hidden;transition:border-color .15s;}
 .item:hover{border-color:#cfc9c0;}
@@ -342,6 +349,57 @@ function saveAll() {
 // ── KEY ──
 function k(tab, ci, ii) { return tab+'_'+ci+'_'+ii; }
 
+// ── DRAG & DROP ──
+let dragData = null;
+
+function reorderItem(tab, ci, from, to) {
+  const items = appData[tab][ci].items;
+  const n = items.length;
+  const newToOld = []; for (let i=0;i<n;i++) newToOld.push(i);
+  const [xi] = newToOld.splice(from,1); newToOld.splice(to,0,xi);
+  const [moved] = items.splice(from, 1);
+  items.splice(to, 0, moved);
+  const nc = {}, nb = {}, nr = {};
+  for (const key in checks) if (!key.startsWith(tab+'_'+ci+'_')) nc[key] = checks[key];
+  for (const key in bugs) if (!key.startsWith(tab+'_'+ci+'_')) nb[key] = bugs[key];
+  for (const key in remarks) if (!key.startsWith(tab+'_'+ci+'_')) nr[key] = remarks[key];
+  for (let i=0;i<n;i++) {
+    const oldKey = tab+'_'+ci+'_'+newToOld[i];
+    const newKey = tab+'_'+ci+'_'+i;
+    if (checks[oldKey]) nc[newKey] = checks[oldKey];
+    if (bugs[oldKey]) nb[newKey] = bugs[oldKey];
+    if (remarks[oldKey]) nr[newKey] = remarks[oldKey];
+  }
+  checks = nc; bugs = nb; remarks = nr;
+  saveAll(); buildTab(tab); updateStats();
+}
+
+function reorderSection(tab, from, to) {
+  const n = appData[tab].length;
+  const newToOld = []; for (let i=0;i<n;i++) newToOld.push(i);
+  const [x] = newToOld.splice(from,1); newToOld.splice(to,0,x);
+  const [moved] = appData[tab].splice(from,1);
+  appData[tab].splice(to,0,moved);
+  // Rebuild state for the whole tab
+  const nc = {}, nb = {}, nr = {};
+  for (const key in checks) if (!key.startsWith(tab+'_')) nc[key] = checks[key];
+  for (const key in bugs) if (!key.startsWith(tab+'_')) nb[key] = bugs[key];
+  for (const key in remarks) if (!key.startsWith(tab+'_')) nr[key] = remarks[key];
+  for (let newCi=0; newCi<n; newCi++) {
+    const oldCi = newToOld[newCi];
+    const items = appData[tab][newCi].items;
+    for (let ii=0; ii<items.length; ii++) {
+      const oldKey = tab+'_'+oldCi+'_'+ii;
+      const newKey = tab+'_'+newCi+'_'+ii;
+      if (checks[oldKey]) nc[newKey] = checks[oldKey];
+      if (bugs[oldKey]) nb[newKey] = bugs[oldKey];
+      if (remarks[oldKey]) nr[newKey] = remarks[oldKey];
+    }
+  }
+  checks = nc; bugs = nb; remarks = nr;
+  saveAll(); buildTab(tab); updateStats();
+}
+
 // ── BUILD ──
 function buildTab(tab) {
   const container = document.getElementById('tab-'+tab);
@@ -373,12 +431,25 @@ function buildSection(tab, ci, section) {
   hdr.className = 'section-header';
 
   if (editMode) {
+    const dh = document.createElement('div');
+    dh.className = 'drag-handle'; dh.textContent = '⋮⋮'; dh.title = 'Glisser pour réordonner';
+    dh.draggable = true;
+    dh.ondragstart = e => { e.stopPropagation(); dragData = {type:'section', tab, ci}; sec.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setDragImage(sec,0,0); };
+    dh.ondragend = () => { sec.classList.remove('dragging'); document.querySelectorAll('.drag-over-top').forEach(x=>x.classList.remove('drag-over-top')); };
+    sec.ondragover = e => { if(dragData && dragData.type==='section' && dragData.tab===tab && dragData.ci!==ci){ e.preventDefault(); sec.classList.add('drag-over-top'); } };
+    sec.ondragleave = () => sec.classList.remove('drag-over-top');
+    sec.ondrop = e => { if(dragData && dragData.type==='section' && dragData.tab===tab && dragData.ci!==ci){ e.preventDefault(); sec.classList.remove('drag-over-top'); reorderSection(tab, dragData.ci, ci); dragData=null; } };
+    hdr.appendChild(dh);
     const inp = document.createElement('input');
     inp.className = 'section-name-input';
     inp.value = section.cat;
     inp.onchange = e => { appData[tab][ci].cat = e.target.value; saveAll(); };
     hdr.appendChild(inp);
     const line = document.createElement('div'); line.className = 'section-line'; hdr.appendChild(line);
+    const addSub = document.createElement('button');
+    addSub.className = 'btn-icon'; addSub.title = 'Ajouter une sous-catégorie';
+    addSub.innerHTML = '↳'; addSub.onclick = () => addSubSectionAfter(tab, ci);
+    hdr.appendChild(addSub);
     const del = document.createElement('button');
     del.className = 'btn-icon delete'; del.title = 'Supprimer la catégorie';
     del.innerHTML = '🗑'; del.onclick = () => deleteSection(tab, ci);
@@ -431,6 +502,16 @@ function buildItem(tab, ci, ii, item) {
     // Edit layout
     const main = document.createElement('div');
     main.className = 'item-main';
+
+    const dh = document.createElement('div');
+    dh.className = 'drag-handle'; dh.textContent = '⋮⋮'; dh.title = 'Glisser pour réordonner';
+    dh.draggable = true;
+    dh.ondragstart = e => { e.stopPropagation(); dragData = {type:'item', tab, ci, ii}; div.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; e.dataTransfer.setDragImage(div,0,0); };
+    dh.ondragend = () => { div.classList.remove('dragging'); document.querySelectorAll('.drag-over-top').forEach(x=>x.classList.remove('drag-over-top')); };
+    div.ondragover = e => { if(dragData && dragData.type==='item' && dragData.tab===tab && dragData.ci===ci && dragData.ii!==ii){ e.preventDefault(); div.classList.add('drag-over-top'); } };
+    div.ondragleave = () => div.classList.remove('drag-over-top');
+    div.ondrop = e => { if(dragData && dragData.type==='item' && dragData.tab===tab && dragData.ci===ci && dragData.ii!==ii){ e.preventDefault(); div.classList.remove('drag-over-top'); reorderItem(tab, ci, dragData.ii, ii); dragData=null; } };
+    main.appendChild(dh);
 
     const check = document.createElement('div'); check.className = 'item-check'; main.appendChild(check);
 
@@ -572,6 +653,18 @@ function addSection(tab, indent) {
     const inputs = container.querySelectorAll('.section-name-input');
     const last = inputs[inputs.length-1];
     if (last) { last.focus(); last.select(); }
+  }, 50);
+}
+
+function addSubSectionAfter(tab, ci) {
+  appData[tab].splice(ci+1, 0, { cat: 'Nouvelle sous-catégorie', items: [], indent: true });
+  saveAll(); buildTab(tab);
+  // Focus new sub-category name
+  setTimeout(() => {
+    const container = document.getElementById('tab-'+tab);
+    const inputs = container.querySelectorAll('.section-name-input');
+    const target = inputs[ci+1];
+    if (target) { target.focus(); target.select(); }
   }, 50);
 }
 
