@@ -1090,40 +1090,86 @@ function buildReport(includeWeekly) {
   const dur = m+'min'+(s>0?' '+s+'s':'');
   const tabs = includeWeekly ? ['daily','weekly'] : ['daily'];
 
-  // Buckets per tab (so we can label them)
-  const buckets = {};
+  // Collect bugs and unchecked items grouped across tabs, and count OK
+  const allBugs = []; // {section, item, comment, tabLabel}
+  const allRem = [];  // {section, item, tabLabel}
+  let totalOk = 0, totalBug = 0, totalRem = 0;
+  const tabLabels = { daily:'quotidien', weekly:'hebdo' };
+
   tabs.forEach(tab => {
-    buckets[tab] = { ok:[], bug:[], rem:[] };
-    appData[tab].forEach((sec,ci) => sec.items.forEach((item,ii) => {
-      const K=k(tab,ci,ii);
-      const entry='['+sec.cat+'] '+item.text;
-      if (bugs[K]) buckets[tab].bug.push(entry+(remarks[K]?'\n  → '+htmlToPlain(remarks[K]):''));
-      else if (checks[K]) buckets[tab].ok.push(entry);
-      else buckets[tab].rem.push(entry);
+    appData[tab].forEach((sec, ci) => sec.items.forEach((item, ii) => {
+      const K = k(tab, ci, ii);
+      if (bugs[K]) {
+        totalBug++;
+        allBugs.push({
+          section: sec.cat,
+          item: item.text,
+          comment: htmlToPlain(remarks[K] || '').trim(),
+          tab: tab,
+        });
+      } else if (checks[K]) {
+        totalOk++;
+      } else {
+        totalRem++;
+        allRem.push({ section: sec.cat, item: item.text, tab: tab });
+      }
     }));
   });
 
-  let totalOk=0, totalBug=0, totalRem=0;
-  tabs.forEach(t => { totalOk += buckets[t].ok.length; totalBug += buckets[t].bug.length; totalRem += buckets[t].rem.length; });
+  // ── BUILD NATURAL REPORT ──
+  const scope = includeWeekly ? 'quotidien et hebdomadaire' : 'quotidien';
+  let r = 'Bonjour,\n\n';
+  r += 'Voici le résumé du test ' + scope + ' du ' + today + ' sur carrelagesignature.com';
+  if (dur && chronoSec > 0) r += ' (durée ' + dur + ')';
+  r += '.\n\n';
 
-  const title = includeWeekly ? 'Test quotidien + hebdomadaire' : 'Test quotidien';
-  let r = title + ' — carrelagesignature.com\n';
-  r += today+' · '+dur+'\n';
-  r += '─────────────────────────────────\n';
-  r += '✅ '+totalOk+' OK   🔴 '+totalBug+' bug(s)   ⏳ '+totalRem+' non vérifié(s)\n\n';
+  // Headline counts
+  r += '✅ ' + totalOk + ' test' + (totalOk>1?'s':'') + ' OK\n';
+  r += '🔴 ' + totalBug + ' bug' + (totalBug>1?'s':'') + ' détecté' + (totalBug>1?'s':'') + '\n';
+  if (totalRem > 0) r += '⏳ ' + totalRem + ' point' + (totalRem>1?'s':'') + ' non vérifié' + (totalRem>1?'s':'') + '\n';
+  r += '\n';
 
-  const labels = { daily:'QUOTIDIEN', weekly:'HEBDOMADAIRE' };
-  tabs.forEach(tab => {
-    const b = buckets[tab];
-    if (!b.ok.length && !b.bug.length && !b.rem.length) return;
-    if (includeWeekly) r += '━━━ ' + labels[tab] + ' ━━━\n';
-    if (b.bug.length) { r+='🔴 BUGS DÉTECTÉS\n'; b.bug.forEach(x=>r+='• '+x+'\n'); r+='\n'; }
-    if (b.rem.length) { r+='⏳ NON VÉRIFIÉS\n'; b.rem.forEach(x=>r+='• '+x+'\n'); r+='\n'; }
-    if (b.ok.length) { r+='✅ OK\n'; b.ok.forEach(x=>r+='• '+x+'\n'); r+='\n'; }
-  });
+  // Bugs — front and center, reformulated from comments
+  if (totalBug > 0) {
+    r += '─ Bugs détectés ─\n\n';
+    allBugs.forEach((b, idx) => {
+      // If a comment exists, use it as the main description (boss-readable sentence).
+      // Otherwise fall back to the item label.
+      let description;
+      if (b.comment) {
+        // Ensure sentence ends with punctuation
+        description = b.comment;
+        if (!/[.!?…]$/.test(description)) description += '.';
+      } else {
+        description = b.item + ' — à corriger.';
+      }
+      const context = b.section + (includeWeekly && b.tab==='weekly' ? ' (hebdo)' : '');
+      r += (idx+1) + '. [' + context + '] ' + description + '\n';
+      // If we used the comment, still mention which check it came from in parentheses
+      if (b.comment) r += '   → Check concerné : ' + b.item + '\n';
+      r += '\n';
+    });
+  } else {
+    r += 'Aucun bug détecté sur ce test. ✅\n\n';
+  }
 
-  const n=htmlToPlain(document.getElementById('notes').innerHTML).trim();
-  if (n) r+='📝 NOTES\n'+n+'\n';
+  // Non-vérifiés — short list
+  if (totalRem > 0) {
+    r += '─ Non vérifiés ─\n';
+    allRem.forEach(x => {
+      const context = x.section + (includeWeekly && x.tab==='weekly' ? ' (hebdo)' : '');
+      r += '• [' + context + '] ' + x.item + '\n';
+    });
+    r += '\n';
+  }
+
+  // Notes libres
+  const notesText = htmlToPlain(document.getElementById('notes').innerHTML).trim();
+  if (notesText) {
+    r += '─ Notes ─\n' + notesText + '\n\n';
+  }
+
+  r += 'Bonne journée,\n';
   return r;
 }
 
