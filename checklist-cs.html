@@ -65,8 +65,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
 .section-header{display:flex;align-items:center;gap:8px;margin-bottom:4px;padding:0 2px;}
-.section-desc{font-size:12px;color:var(--muted);font-style:italic;margin:0 2px 10px;line-height:1.5;}
-.section-desc-input{width:100%;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--edit);background:var(--edit-light);border:1px solid #C5CCE8;border-radius:5px;padding:5px 9px;outline:none;margin:0 0 10px;font-style:italic;}
+.section-desc{font-size:12px;color:var(--muted);font-style:italic;margin:0 2px 10px;line-height:1.6;white-space:pre-wrap;word-wrap:break-word;}
+.section-desc-input{width:100%;font-size:12px;font-family:'DM Sans',sans-serif;color:var(--edit);background:var(--edit-light);border:1px solid #C5CCE8;border-radius:5px;padding:7px 10px;outline:none;margin:0 0 10px;font-style:italic;line-height:1.6;resize:vertical;min-height:34px;overflow:hidden;white-space:pre-wrap;word-wrap:break-word;}
 .section-desc-input:focus{border-color:var(--edit);}
 .section-name{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
 .section-name-input{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--edit);background:var(--edit-light);border:1px solid #C5CCE8;border-radius:4px;padding:2px 8px;outline:none;font-family:'DM Sans',sans-serif;min-width:120px;}
@@ -669,11 +669,22 @@ function buildSection(tab, ci, section) {
   body.id = 'body-'+tab+'-'+ci;
 
   if (editMode) {
-    const descInp = document.createElement('input');
+    const descInp = document.createElement('textarea');
     descInp.className = 'section-desc-input';
     descInp.value = section.desc || '';
-    descInp.placeholder = 'Points à vérifier (optionnel) — ex: photos, prix, panier...';
-    descInp.onchange = e => { appData[tab][ci].desc = e.target.value; saveAll(); };
+    descInp.rows = 1;
+    descInp.placeholder = 'Points à vérifier (optionnel) — Entrée pour aller à la ligne';
+    const autoResize = () => {
+      descInp.style.height = 'auto';
+      descInp.style.height = (descInp.scrollHeight + 2) + 'px';
+    };
+    descInp.addEventListener('input', () => {
+      appData[tab][ci].desc = descInp.value;
+      saveAll();
+      autoResize();
+    });
+    // Initial sizing after element is in DOM
+    setTimeout(autoResize, 0);
     body.appendChild(descInp);
   } else if (section.desc) {
     const desc = document.createElement('div');
