@@ -288,6 +288,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="modal-field">
         <div class="modal-label">Aperçu du rapport</div>
         <div class="modal-preview" id="mail-preview"></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5;">
+          💡 Le bouton <strong>Copier</strong> copie le rapport en format riche : quand tu colles (Cmd+V) dans Gmail, Outlook ou Slack, les captures d'écran des bugs apparaissent automatiquement à la fin du message, regroupées par bug.
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1084,83 +1087,150 @@ function rememberMail(addr) {
   saveMailHistory(list);
 }
 
-function buildReport(includeWeekly) {
-  const today = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const m=Math.floor(chronoSec/60), s=chronoSec%60;
-  const dur = m+'min'+(s>0?' '+s+'s':'');
+// Extract {text, images[]} from a bug comment HTML
+function extractBugContent(html) {
+  if (!html) return { text: '', images: [] };
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const images = Array.from(tmp.querySelectorAll('img')).map(img => img.src).filter(Boolean);
+  tmp.querySelectorAll('img').forEach(img => img.remove());
+  return {
+    text: htmlToPlain(tmp.innerHTML).trim(),
+    images: images,
+  };
+}
+
+// Collect all bugs with their text, images, and context. Used by both text and HTML report.
+function collectReportData(includeWeekly) {
   const tabs = includeWeekly ? ['daily','weekly'] : ['daily'];
-
-  // Collect bugs and unchecked items grouped across tabs, and count OK
-  const allBugs = []; // {section, item, comment, tabLabel}
-  const allRem = [];  // {section, item, tabLabel}
+  const allBugs = [];
   let totalOk = 0, totalBug = 0, totalRem = 0;
-  const tabLabels = { daily:'quotidien', weekly:'hebdo' };
-
   tabs.forEach(tab => {
     appData[tab].forEach((sec, ci) => sec.items.forEach((item, ii) => {
       const K = k(tab, ci, ii);
       if (bugs[K]) {
         totalBug++;
+        const content = extractBugContent(remarks[K] || '');
         allBugs.push({
           section: sec.cat,
           item: item.text,
-          comment: htmlToPlain(remarks[K] || '').trim(),
+          text: content.text,
+          images: content.images,
           tab: tab,
         });
       } else if (checks[K]) {
         totalOk++;
       } else {
         totalRem++;
-        allRem.push({ section: sec.cat, item: item.text, tab: tab });
       }
     }));
   });
+  return { allBugs, totalOk, totalBug, totalRem, tabs };
+}
 
-  // ── BUILD NATURAL REPORT ──
+function buildReport(includeWeekly) {
+  const today = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const m=Math.floor(chronoSec/60), s=chronoSec%60;
+  const dur = m+'min'+(s>0?' '+s+'s':'');
+  const { allBugs, totalOk, totalBug, totalRem } = collectReportData(includeWeekly);
   const scope = includeWeekly ? 'quotidien et hebdomadaire' : 'quotidien';
+
   let r = 'Bonjour,\n\n';
   r += 'Voici le résumé du test ' + scope + ' du ' + today + ' sur carrelagesignature.com';
   if (dur && chronoSec > 0) r += ' (durée ' + dur + ')';
   r += '.\n\n';
 
-  // Headline counts
   r += '✅ ' + totalOk + ' test' + (totalOk>1?'s':'') + ' OK\n';
   r += '🔴 ' + totalBug + ' bug' + (totalBug>1?'s':'') + ' détecté' + (totalBug>1?'s':'') + '\n';
   if (totalRem > 0) r += '⏳ ' + totalRem + ' point' + (totalRem>1?'s':'') + ' non vérifié' + (totalRem>1?'s':'') + '\n';
   r += '\n';
 
-  // Bugs — front and center, reformulated from comments
   if (totalBug > 0) {
     r += '─ Bugs détectés ─\n\n';
     allBugs.forEach((b, idx) => {
-      // If a comment exists, use it as the main description (boss-readable sentence).
-      // Otherwise fall back to the item label.
-      let description;
-      if (b.comment) {
-        // Ensure sentence ends with punctuation
-        description = b.comment;
-        if (!/[.!?…]$/.test(description)) description += '.';
-      } else {
-        description = b.item + ' — à corriger.';
-      }
+      let description = b.text || (b.item + ' — à corriger');
+      if (!/[.!?…]$/.test(description)) description += '.';
       const context = b.section + (includeWeekly && b.tab==='weekly' ? ' (hebdo)' : '');
-      r += (idx+1) + '. [' + context + '] ' + description + '\n';
-      // If we used the comment, still mention which check it came from in parentheses
-      if (b.comment) r += '   → Check concerné : ' + b.item + '\n';
+      r += '#' + (idx+1) + ' [' + context + '] ' + description + '\n';
+      if (b.text) r += '   → Check concerné : ' + b.item + '\n';
+      if (b.images.length) r += '   📎 ' + b.images.length + ' capture' + (b.images.length>1?'s':'') + ' jointe' + (b.images.length>1?'s':'') + ' (voir ci-dessous)\n';
       r += '\n';
     });
   } else {
     r += 'Aucun bug détecté sur ce test. ✅\n\n';
   }
 
-  // Notes libres
   const notesText = htmlToPlain(document.getElementById('notes').innerHTML).trim();
-  if (notesText) {
-    r += '─ Notes ─\n' + notesText + '\n\n';
-  }
+  if (notesText) r += '─ Notes ─\n' + notesText + '\n\n';
 
   r += 'Bonne journée,\n';
   return r;
+}
+
+// Escape HTML for safe insertion in buildReportHTML
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Rich HTML version — includes inline screenshots grouped per bug at the end
+function buildReportHTML(includeWeekly) {
+  const today = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const m=Math.floor(chronoSec/60), s=chronoSec%60;
+  const dur = m+'min'+(s>0?' '+s+'s':'');
+  const { allBugs, totalOk, totalBug, totalRem } = collectReportData(includeWeekly);
+  const scope = includeWeekly ? 'quotidien et hebdomadaire' : 'quotidien';
+
+  const style = 'font-family:-apple-system,Segoe UI,sans-serif;font-size:14px;line-height:1.5;color:#1A1612;';
+  let h = '<div style="'+style+'">';
+  h += '<p>Bonjour,</p>';
+  h += '<p>Voici le résumé du test ' + scope + ' du ' + escHtml(today) + ' sur carrelagesignature.com';
+  if (dur && chronoSec > 0) h += ' (durée ' + escHtml(dur) + ')';
+  h += '.</p>';
+
+  h += '<p style="margin:12px 0;">';
+  h += '✅ <strong>' + totalOk + '</strong> test' + (totalOk>1?'s':'') + ' OK<br>';
+  h += '🔴 <strong>' + totalBug + '</strong> bug' + (totalBug>1?'s':'') + ' détecté' + (totalBug>1?'s':'');
+  if (totalRem > 0) h += '<br>⏳ <strong>' + totalRem + '</strong> point' + (totalRem>1?'s':'') + ' non vérifié' + (totalRem>1?'s':'');
+  h += '</p>';
+
+  if (totalBug > 0) {
+    h += '<p style="margin-top:16px;"><strong>─ Bugs détectés ─</strong></p>';
+    allBugs.forEach((b, idx) => {
+      let description = b.text || (b.item + ' — à corriger');
+      if (!/[.!?…]$/.test(description)) description += '.';
+      const context = b.section + (includeWeekly && b.tab==='weekly' ? ' (hebdo)' : '');
+      h += '<p style="margin:10px 0 4px;"><strong>#' + (idx+1) + '</strong> <span style="color:#8C8279;">[' + escHtml(context) + ']</span> ' + escHtml(description) + '</p>';
+      if (b.text) h += '<p style="margin:0 0 2px 18px;color:#8C8279;font-size:12px;">→ Check concerné : ' + escHtml(b.item) + '</p>';
+      if (b.images.length) h += '<p style="margin:0 0 2px 18px;color:#C4773A;font-size:12px;">📎 ' + b.images.length + ' capture' + (b.images.length>1?'s':'') + ' ci-dessous</p>';
+    });
+  } else {
+    h += '<p>Aucun bug détecté sur ce test. ✅</p>';
+  }
+
+  const notesText = htmlToPlain(document.getElementById('notes').innerHTML).trim();
+  if (notesText) {
+    h += '<p style="margin-top:16px;"><strong>─ Notes ─</strong></p>';
+    h += '<p style="white-space:pre-wrap;">' + escHtml(notesText) + '</p>';
+  }
+
+  h += '<p style="margin-top:16px;">Bonne journée,</p>';
+
+  // Appendix: captures grouped per bug
+  const bugsWithImages = allBugs.filter(b => b.images.length > 0);
+  if (bugsWithImages.length) {
+    h += '<hr style="margin:24px 0;border:none;border-top:1px solid #E8E2D9;">';
+    h += '<p><strong>📎 Captures jointes</strong></p>';
+    bugsWithImages.forEach(b => {
+      const idx = allBugs.indexOf(b) + 1;
+      h += '<p style="margin:16px 0 6px;"><strong>Bug #' + idx + '</strong> — ' + escHtml(b.section) + ' · ' + escHtml(b.item) + '</p>';
+      b.images.forEach(src => {
+        h += '<img src="' + src + '" alt="capture bug ' + idx + '" style="max-width:100%;max-height:400px;border:1px solid #E8E2D9;border-radius:6px;display:block;margin:6px 0;">';
+      });
+    });
+  }
+
+  h += '</div>';
+  return h;
 }
 
 function refreshMailPreview() {
@@ -1197,29 +1267,47 @@ function closeIfBackdrop(e) { if(e.target===document.getElementById('modal')) cl
 async function copyReport() {
   const inc = document.getElementById('include-weekly').checked;
   const text = buildReport(inc);
+  const html = buildReportHTML(inc);
   const btn = document.getElementById('copy-btn');
   const original = btn.innerHTML;
+  let success = false;
   try {
-    await navigator.clipboard.writeText(text);
-    btn.innerHTML = '✓ Copié';
-    btn.style.background = 'var(--ok-light)';
-    btn.style.borderColor = 'var(--ok)';
-    btn.style.color = 'var(--ok)';
+    // Rich clipboard: text/html + text/plain in one ClipboardItem.
+    // When pasted in Gmail/Outlook/Slack → images appear inline.
+    // When pasted in a plain text editor → plain text version.
+    if (navigator.clipboard && window.ClipboardItem) {
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([text], { type: 'text/plain' }),
+      });
+      await navigator.clipboard.write([item]);
+      success = true;
+    } else {
+      await navigator.clipboard.writeText(text);
+      success = true;
+    }
   } catch(e) {
-    // Fallback: temporary textarea + execCommand
+    console.error('clipboard write failed', e);
+    // Fallback: temporary textarea + execCommand (text only)
     const ta = document.createElement('textarea');
     ta.value = text;
     ta.style.position = 'fixed'; ta.style.left = '-9999px';
     document.body.appendChild(ta);
     ta.select();
-    try { document.execCommand('copy'); btn.innerHTML = '✓ Copié'; }
+    try { document.execCommand('copy'); success = true; }
     catch(e2) { alert('Impossible de copier automatiquement. Sélectionne le texte dans l\'aperçu et Ctrl+C.'); }
     document.body.removeChild(ta);
+  }
+  if (success) {
+    btn.innerHTML = '✓ Copié (colle dans ton mail)';
+    btn.style.background = 'var(--ok-light)';
+    btn.style.borderColor = 'var(--ok)';
+    btn.style.color = 'var(--ok)';
   }
   setTimeout(() => {
     btn.innerHTML = original;
     btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = '';
-  }, 2000);
+  }, 2500);
 }
 
 async function sendMail() {
