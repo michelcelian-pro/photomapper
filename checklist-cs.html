@@ -1325,14 +1325,11 @@ function downloadReportPDF() {
   const inc = document.getElementById('include-weekly').checked;
   const html = buildReportHTML(inc);
 
-  // Build a wrapper with A4-friendly width and white background
+  // Build a wrapper with A4-friendly width and white background.
+  // IMPORTANT: use absolute positioning in-flow (not fixed) so html2canvas measures it.
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'width:180mm;padding:14mm 15mm;background:#fff;color:#1A1612;font-family:-apple-system,Segoe UI,sans-serif;';
+  wrapper.style.cssText = 'position:absolute;left:-10000px;top:0;width:180mm;padding:14mm 15mm;background:#fff;color:#1A1612;font-family:-apple-system,Segoe UI,sans-serif;box-sizing:border-box;';
   wrapper.innerHTML = html;
-  // Append off-screen so html2pdf can measure it
-  wrapper.style.position = 'fixed';
-  wrapper.style.left = '-9999px';
-  wrapper.style.top = '0';
   document.body.appendChild(wrapper);
 
   const today = new Date().toISOString().slice(0,10);
@@ -1340,12 +1337,11 @@ function downloadReportPDF() {
   const filename = 'rapport-CS-' + today + (bugCount>0 ? '-'+bugCount+'bugs' : '-ok') + '.pdf';
 
   const opt = {
-    margin: 0,
+    margin: [10, 10, 10, 10],
     filename: filename,
     image: { type: 'jpeg', quality: 0.92 },
-    html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+    html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff', windowWidth: 900 },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
   };
 
   html2pdf().set(opt).from(wrapper).save().then(() => {
@@ -1380,11 +1376,8 @@ async function sendViaGmail() {
   const html = buildReportHTML(inc);
 
   const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'width:180mm;padding:14mm 15mm;background:#fff;color:#1A1612;font-family:-apple-system,Segoe UI,sans-serif;';
+  wrapper.style.cssText = 'position:absolute;left:-10000px;top:0;width:180mm;padding:14mm 15mm;background:#fff;color:#1A1612;font-family:-apple-system,Segoe UI,sans-serif;box-sizing:border-box;';
   wrapper.innerHTML = html;
-  wrapper.style.position = 'fixed';
-  wrapper.style.left = '-9999px';
-  wrapper.style.top = '0';
   document.body.appendChild(wrapper);
 
   const today = new Date().toISOString().slice(0,10);
@@ -1395,11 +1388,10 @@ async function sendViaGmail() {
   const subjectPlain = tag + ' — ' + todayFr + (bugCount>0 ? ' 🔴 '+bugCount+' bug(s)' : ' ✅ OK');
 
   const opt = {
-    margin: 0, filename,
+    margin: [10, 10, 10, 10], filename,
     image: { type: 'jpeg', quality: 0.92 },
-    html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+    html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff', windowWidth: 900 },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
   };
 
   try {
