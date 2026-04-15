@@ -300,9 +300,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal()">Annuler</button>
-      <button class="btn" onclick="copyReport()" id="copy-btn">📋 Copier</button>
-      <button class="btn" onclick="downloadReportPDF()" id="pdf-btn">📄 PDF seul</button>
-      <button class="btn primary" onclick="sendViaGmail()" id="gmail-btn">📧 Gmail + PDF</button>
+      <button class="btn" onclick="copyReport()" id="copy-btn">📋 Copier seulement</button>
+      <button class="btn primary" onclick="sendViaGmail()" id="gmail-btn">📧 Copier + ouvrir Gmail</button>
     </div>
   </div>
 </div>
@@ -1363,76 +1362,62 @@ function downloadReportPDF() {
 // Generates the PDF, auto-downloads it, then opens Gmail compose in a new tab
 // with recipient + subject + short body pre-filled. The user just drags the PDF
 // from the download bar into the Gmail window (1 drag, no copy-paste).
+// Copies the rich report (text + inline screenshots) to the clipboard,
+// then opens Gmail compose in a new tab with recipient + subject pre-filled.
+// The user just pastes (Cmd+V) once in the body field and hits Send.
 async function sendViaGmail() {
   const to = document.getElementById('mail-to').value.trim();
   if (!to) { alert('Saisis un destinataire'); return; }
 
   const btn = document.getElementById('gmail-btn');
   const original = btn.innerHTML;
-  btn.innerHTML = '⏳ Génération PDF...';
   btn.disabled = true;
+  btn.innerHTML = '⏳ Copie...';
 
   const inc = document.getElementById('include-weekly').checked;
+  const text = buildReport(inc);
   const html = buildReportHTML(inc);
 
-  const wrapper = document.createElement('div');
-  wrapper.style.cssText = 'position:absolute;left:-10000px;top:0;width:180mm;padding:14mm 15mm;background:#fff;color:#1A1612;font-family:-apple-system,Segoe UI,sans-serif;box-sizing:border-box;';
-  wrapper.innerHTML = html;
-  document.body.appendChild(wrapper);
-
-  const today = new Date().toISOString().slice(0,10);
   const todayFr = new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
   const bugCount = Object.values(bugs).filter(Boolean).length;
-  const filename = 'rapport-CS-' + today + (bugCount>0 ? '-'+bugCount+'bugs' : '-ok') + '.pdf';
   const tag = inc ? 'Test CS (quotidien + hebdo)' : 'Test CS';
   const subjectPlain = tag + ' — ' + todayFr + (bugCount>0 ? ' 🔴 '+bugCount+' bug(s)' : ' ✅ OK');
 
-  const opt = {
-    margin: [10, 10, 10, 10], filename,
-    image: { type: 'jpeg', quality: 0.92 },
-    html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff', windowWidth: 900 },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-  };
-
+  // Rich clipboard: text/html preserves inline screenshots when pasted into Gmail
   try {
-    // Use .save() — same path as the working "PDF seul" button.
-    await html2pdf().set(opt).from(wrapper).save();
-    document.body.removeChild(wrapper);
-
-    rememberMail(to);
-
-    // Short mail body
-    const body =
-      'Bonjour,\n\n' +
-      'Voici le rapport du test CS du ' + todayFr + '.\n' +
-      (bugCount > 0
-        ? 'Résultat : ' + bugCount + ' bug(s) détecté(s) — détails dans le PDF ci-joint.\n'
-        : 'Résultat : tout est OK — détails dans le PDF ci-joint.\n') +
-      '\nBonne journée,';
-
-    // Open Gmail web compose in a new tab, pre-filled
-    const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1'
-      + '&to=' + encodeURIComponent(to)
-      + '&su=' + encodeURIComponent(subjectPlain)
-      + '&body=' + encodeURIComponent(body);
-
-    // Small delay so the download starts before the tab switch
-    setTimeout(() => {
-      window.open(gmailUrl, '_blank', 'noopener');
-      btn.innerHTML = '✓ Glisse le PDF dans Gmail';
-      setTimeout(() => {
-        btn.innerHTML = original;
-        btn.disabled = false;
-        closeModal();
-      }, 3500);
-    }, 400);
-  } catch (err) {
-    console.error(err);
-    if (wrapper.parentNode) document.body.removeChild(wrapper);
+    if (navigator.clipboard && window.ClipboardItem) {
+      const item = new ClipboardItem({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([text], { type: 'text/plain' }),
+      });
+      await navigator.clipboard.write([item]);
+    } else {
+      await navigator.clipboard.writeText(text);
+    }
+  } catch (e) {
+    console.error('clipboard write failed', e);
+    alert('Impossible de copier automatiquement. Utilise le bouton "Copier seulement" puis ouvre Gmail manuellement.');
     btn.innerHTML = original;
     btn.disabled = false;
-    alert('Erreur lors de la génération du PDF : ' + err.message);
+    return;
   }
+
+  rememberMail(to);
+
+  // Open Gmail compose in a new tab, pre-filled with recipient + subject.
+  // Body is left empty — user pastes the full report with Cmd+V.
+  const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1'
+    + '&to=' + encodeURIComponent(to)
+    + '&su=' + encodeURIComponent(subjectPlain);
+
+  window.open(gmailUrl, '_blank', 'noopener');
+
+  btn.innerHTML = '✓ Copié — colle avec Cmd+V dans Gmail';
+  setTimeout(() => {
+    btn.innerHTML = original;
+    btn.disabled = false;
+    closeModal();
+  }, 3500);
 }
 
 function refreshMailPreview() {
