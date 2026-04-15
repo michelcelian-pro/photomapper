@@ -1211,8 +1211,13 @@ function buildReport(includeWeekly) {
     r += 'Aucun bug détecté sur ce test. ✅\n\n';
   }
 
-  const notesText = htmlToPlain(document.getElementById('notes').innerHTML).trim();
-  if (notesText) r += '─ Notes ─\n' + notesText + '\n\n';
+  const notesContentText = extractBugContent(document.getElementById('notes').innerHTML);
+  if (notesContentText.text || notesContentText.images.length) {
+    r += '─ Notes ─\n';
+    if (notesContentText.text) r += notesContentText.text + '\n';
+    if (notesContentText.images.length) r += '📎 ' + notesContentText.images.length + ' capture' + (notesContentText.images.length>1?'s':'') + ' jointe' + (notesContentText.images.length>1?'s':'') + ' (voir ci-dessous)\n';
+    r += '\n';
+  }
 
   r += 'Bonne journée,\n';
   return r;
@@ -1258,17 +1263,19 @@ function buildReportHTML(includeWeekly) {
     h += '<p>Aucun bug détecté sur ce test. ✅</p>';
   }
 
-  const notesText = htmlToPlain(document.getElementById('notes').innerHTML).trim();
-  if (notesText) {
+  const notesRaw = document.getElementById('notes').innerHTML;
+  const notesContent = extractBugContent(notesRaw); // reuse: {text, images}
+  if (notesContent.text) {
     h += '<p style="margin-top:16px;"><strong>─ Notes ─</strong></p>';
-    h += '<p style="white-space:pre-wrap;">' + escHtml(notesText) + '</p>';
+    h += '<p style="white-space:pre-wrap;">' + escHtml(notesContent.text) + '</p>';
   }
 
   h += '<p style="margin-top:16px;">Bonne journée,</p>';
 
-  // Appendix: captures grouped per bug
+  // Appendix: captures grouped per bug + notes captures
   const bugsWithImages = allBugs.filter(b => b.images.length > 0);
-  if (bugsWithImages.length) {
+  const hasAnyCaptures = bugsWithImages.length > 0 || notesContent.images.length > 0;
+  if (hasAnyCaptures) {
     h += '<hr style="margin:24px 0;border:none;border-top:1px solid #E8E2D9;">';
     h += '<p><strong>📎 Captures jointes</strong></p>';
     bugsWithImages.forEach(b => {
@@ -1278,6 +1285,12 @@ function buildReportHTML(includeWeekly) {
         h += '<img src="' + src + '" alt="capture bug ' + idx + '" style="max-width:100%;max-height:400px;border:1px solid #E8E2D9;border-radius:6px;display:block;margin:6px 0;">';
       });
     });
+    if (notesContent.images.length) {
+      h += '<p style="margin:16px 0 6px;"><strong>Notes libres</strong></p>';
+      notesContent.images.forEach(src => {
+        h += '<img src="' + src + '" alt="capture notes" style="max-width:100%;max-height:400px;border:1px solid #E8E2D9;border-radius:6px;display:block;margin:6px 0;">';
+      });
+    }
   }
 
   h += '</div>';
