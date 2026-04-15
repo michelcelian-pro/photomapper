@@ -60,6 +60,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 /* SECTION */
 .section{margin-bottom:1.5rem;animation:fadeIn .2s ease both;}
+.section.indented{margin-left:1.5rem;padding-left:1rem;border-left:2px solid var(--border);margin-bottom:1rem;margin-top:-0.5rem;}
+.section.indented .section-name{font-size:10px;color:#A89E93;}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
 .section-header{display:flex;align-items:center;gap:8px;margin-bottom:4px;padding:0 2px;}
@@ -255,10 +257,6 @@ const DEFAULT_DATA = {
       {text:"Sylvania 20×20",link:PRODUIT},
       {text:"(Ajoute tes autres produits en mode édition)",link:''},
     ]},
-    { cat:"Vérifier les produits en stock", desc:"Pour chaque produit : stock affiché, délai de livraison cohérent, dispo par déclinaison. Bug + commentaire si incohérence.", items:[
-      {text:"Sylvania 20×20",link:PRODUIT},
-      {text:"(Ajoute tes autres produits en mode édition)",link:''},
-    ]},
     { cat:"Panier & tunnel", items:[
       {text:"Panier latéral s'ouvre et affiche le produit ajouté",link:PRODUIT},
       {text:"Page panier cohérente avec le panier latéral",link:BASE+'/panier/'},
@@ -355,15 +353,20 @@ function buildTab(tab) {
     const addSec = document.createElement('button');
     addSec.className = 'add-section-btn';
     addSec.innerHTML = '+ Ajouter une catégorie';
-    addSec.onclick = () => addSection(tab);
+    addSec.onclick = () => addSection(tab, false);
     container.appendChild(addSec);
+    const addSub = document.createElement('button');
+    addSub.className = 'add-section-btn';
+    addSub.innerHTML = '+ Ajouter une sous-catégorie';
+    addSub.onclick = () => addSection(tab, true);
+    container.appendChild(addSub);
   }
   updateCounts(tab);
 }
 
 function buildSection(tab, ci, section) {
   const sec = document.createElement('div');
-  sec.className = 'section';
+  sec.className = 'section' + (section.indent ? ' indented' : '');
   sec.id = 'sec-'+tab+'-'+ci;
 
   const hdr = document.createElement('div');
@@ -560,8 +563,8 @@ function deleteItem(tab, ci, ii) {
   saveAll(); buildTab(tab);
 }
 
-function addSection(tab) {
-  appData[tab].push({ cat: 'Nouvelle catégorie', items: [] });
+function addSection(tab, indent) {
+  appData[tab].push({ cat: indent ? 'Nouvelle sous-catégorie' : 'Nouvelle catégorie', items: [], indent: !!indent });
   saveAll(); buildTab(tab);
   // Focus new category name
   setTimeout(() => {
