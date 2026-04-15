@@ -115,7 +115,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .status-btn.active-bug{background:var(--bug-light);border-color:var(--bug);color:var(--bug);}
 
 /* ITEM SUB-ENTRIES */
-.item-subs{padding:0 12px 10px 40px;display:flex;flex-direction:column;gap:4px;}
+.item-subs{padding:0 12px 10px 40px;display:flex;flex-direction:column;gap:4px;overflow:hidden;transition:max-height .25s ease, opacity .2s ease, padding .2s ease;max-height:4000px;opacity:1;}
+.item-subs.collapsed{max-height:0 !important;opacity:0;padding-top:0;padding-bottom:0;}
+.item-sub-toggle{width:18px;height:18px;border:1px solid var(--border);background:var(--surface);cursor:pointer;color:var(--muted);font-size:9px;display:inline-flex;align-items:center;justify-content:center;border-radius:4px;transition:all .15s;flex-shrink:0;padding:0;line-height:1;}
+.item-sub-toggle:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
+.item-sub-badge{font-size:10px;color:var(--muted);font-weight:400;background:var(--bg);border-radius:99px;padding:1px 7px;margin-left:4px;}
 .item-sub{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
 .item-sub-arrow{color:#B8AEA2;font-size:13px;flex-shrink:0;}
 .item-sub-label{flex:1;line-height:1.4;}
@@ -734,6 +738,24 @@ function toggleCollapseAll() {
   if (btn) btn.innerHTML = anyExpanded ? '▼ Tout déplier' : '▶ Tout plier';
 }
 
+function toggleItemCollapse(tab, ci, ii) {
+  const key = 'item_'+tab+'_'+ci+'_'+ii;
+  collapsed[key] = !collapsed[key];
+  saveAll();
+  const wrap = document.getElementById('item-subs-'+tab+'-'+ci+'-'+ii);
+  if (wrap) wrap.classList.toggle('collapsed', !!collapsed[key]);
+  // Update chevron icon
+  const itemEl = document.getElementById('item-'+k(tab,ci,ii));
+  if (itemEl) {
+    const btn = itemEl.querySelector('.item-sub-toggle');
+    if (btn) {
+      const now = !!collapsed[key];
+      btn.textContent = now ? '▶' : '▼';
+      btn.title = now ? 'Déplier les sous-catégories' : 'Replier les sous-catégories';
+    }
+  }
+}
+
 function toggleCollapse(tab, ci) {
   const colKey = tab+'_'+ci;
   collapsed[colKey] = !collapsed[colKey];
@@ -841,6 +863,23 @@ function buildItem(tab, ci, ii, item) {
     label.className = 'item-label'; label.textContent = item.text;
     main.appendChild(label);
 
+    // Chevron to collapse the item's sub-entries (only if there are subs)
+    const hasSubs = item.subs && item.subs.length;
+    const itemColKey = 'item_'+tab+'_'+ci+'_'+ii;
+    const isItemCollapsed = hasSubs && !!collapsed[itemColKey];
+    if (hasSubs) {
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'item-sub-toggle';
+      toggleBtn.textContent = isItemCollapsed ? '▶' : '▼';
+      toggleBtn.title = isItemCollapsed ? 'Déplier les sous-catégories' : 'Replier les sous-catégories';
+      toggleBtn.onclick = (e) => { e.stopPropagation(); toggleItemCollapse(tab, ci, ii); };
+      main.appendChild(toggleBtn);
+      const badge = document.createElement('span');
+      badge.className = 'item-sub-badge';
+      badge.textContent = item.subs.length;
+      main.appendChild(badge);
+    }
+
     if (item.link) {
       const a = document.createElement('a');
       a.className = 'item-link'; a.href = item.link; a.target = '_blank';
@@ -861,9 +900,10 @@ function buildItem(tab, ci, ii, item) {
 
     div.appendChild(main);
 
-    if (item.subs && item.subs.length) {
+    if (hasSubs) {
       const subsWrap = document.createElement('div');
-      subsWrap.className = 'item-subs';
+      subsWrap.className = 'item-subs' + (isItemCollapsed ? ' collapsed' : '');
+      subsWrap.id = 'item-subs-'+tab+'-'+ci+'-'+ii;
       item.subs.forEach(sub => {
         const row = document.createElement('div');
         row.className = 'item-sub';
