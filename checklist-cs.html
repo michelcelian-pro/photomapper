@@ -301,8 +301,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="modal-footer">
       <button class="btn" onclick="closeModal()">Annuler</button>
       <button class="btn" onclick="copyReport()" id="copy-btn">📋 Copier</button>
-      <button class="btn" onclick="sendMail()">✉ Mail</button>
-      <button class="btn primary" onclick="downloadReportPDF()" id="pdf-btn">📄 Télécharger PDF</button>
+      <button class="btn" onclick="downloadReportPDF()" id="pdf-btn">📄 PDF seul</button>
+      <button class="btn primary" onclick="sendViaGmail()" id="gmail-btn">📧 Gmail + PDF</button>
     </div>
   </div>
 </div>
@@ -1362,6 +1362,94 @@ function downloadReportPDF() {
     btn.disabled = false;
     alert('Erreur lors de la génération du PDF : ' + err.message);
   });
+}
+
+// Generates the PDF, auto-downloads it, then opens Gmail compose in a new tab
+// with recipient + subject + short body pre-filled. The user just drags the PDF
+// from the download bar into the Gmail window (1 drag, no copy-paste).
+async function sendViaGmail() {
+  const to = document.getElementById('mail-to').value.trim();
+  if (!to) { alert('Saisis un destinataire'); return; }
+
+  const btn = document.getElementById('gmail-btn');
+  const original = btn.innerHTML;
+  btn.innerHTML = '⏳ Génération PDF...';
+  btn.disabled = true;
+
+  const inc = document.getElementById('include-weekly').checked;
+  const html = buildReportHTML(inc);
+
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'width:180mm;padding:14mm 15mm;background:#fff;color:#1A1612;font-family:-apple-system,Segoe UI,sans-serif;';
+  wrapper.innerHTML = html;
+  wrapper.style.position = 'fixed';
+  wrapper.style.left = '-9999px';
+  wrapper.style.top = '0';
+  document.body.appendChild(wrapper);
+
+  const today = new Date().toISOString().slice(0,10);
+  const todayFr = new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
+  const bugCount = Object.values(bugs).filter(Boolean).length;
+  const filename = 'rapport-CS-' + today + (bugCount>0 ? '-'+bugCount+'bugs' : '-ok') + '.pdf';
+  const tag = inc ? 'Test CS (quotidien + hebdo)' : 'Test CS';
+  const subjectPlain = tag + ' — ' + todayFr + (bugCount>0 ? ' 🔴 '+bugCount+' bug(s)' : ' ✅ OK');
+
+  const opt = {
+    margin: 0, filename,
+    image: { type: 'jpeg', quality: 0.92 },
+    html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+  };
+
+  try {
+    // Generate PDF as Blob and trigger download (so it's in the download bar, draggable)
+    const pdfBlob = await html2pdf().set(opt).from(wrapper).output('blob');
+    document.body.removeChild(wrapper);
+
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+
+    rememberMail(to);
+
+    // Short mail body
+    const body =
+      'Bonjour,\n\n' +
+      'Voici le rapport du test CS du ' + todayFr + '.\n' +
+      (bugCount > 0
+        ? 'Résultat : ' + bugCount + ' bug(s) détecté(s) — détails dans le PDF ci-joint.\n'
+        : 'Résultat : tout est OK — détails dans le PDF ci-joint.\n') +
+      '\nBonne journée,';
+
+    // Open Gmail web compose in a new tab, pre-filled
+    const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1'
+      + '&to=' + encodeURIComponent(to)
+      + '&su=' + encodeURIComponent(subjectPlain)
+      + '&body=' + encodeURIComponent(body);
+
+    // Small delay so the download starts before the tab switch
+    setTimeout(() => {
+      window.open(gmailUrl, '_blank', 'noopener');
+      btn.innerHTML = '✓ Glisse le PDF dans Gmail';
+      setTimeout(() => {
+        btn.innerHTML = original;
+        btn.disabled = false;
+        closeModal();
+      }, 3500);
+    }, 400);
+  } catch (err) {
+    console.error(err);
+    if (wrapper.parentNode) document.body.removeChild(wrapper);
+    btn.innerHTML = original;
+    btn.disabled = false;
+    alert('Erreur lors de la génération du PDF : ' + err.message);
+  }
 }
 
 function refreshMailPreview() {
