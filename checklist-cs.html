@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tests CS — Carrelage Signature</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -299,8 +300,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal()">Annuler</button>
-      <button class="btn" onclick="copyReport()" id="copy-btn">📋 Copier le rapport</button>
-      <button class="btn primary" onclick="sendMail()">Ouvrir dans Mail</button>
+      <button class="btn" onclick="copyReport()" id="copy-btn">📋 Copier</button>
+      <button class="btn" onclick="sendMail()">✉ Mail</button>
+      <button class="btn primary" onclick="downloadReportPDF()" id="pdf-btn">📄 Télécharger PDF</button>
     </div>
   </div>
 </div>
@@ -1155,6 +1157,8 @@ function extractBugContent(html) {
 function collectReportData(includeWeekly) {
   const tabs = includeWeekly ? ['daily','weekly'] : ['daily'];
   const allBugs = [];
+  // OK items grouped by section: { "Fiches produits": [{item, tab}, ...], ... }
+  const okBySection = {}; // key: `${tab}|${cat}` → { tab, cat, items: [] }
   let totalOk = 0, totalBug = 0, totalRem = 0;
   tabs.forEach(tab => {
     appData[tab].forEach((sec, ci) => sec.items.forEach((item, ii) => {
@@ -1171,12 +1175,15 @@ function collectReportData(includeWeekly) {
         });
       } else if (checks[K]) {
         totalOk++;
+        const key = tab + '|' + sec.cat;
+        if (!okBySection[key]) okBySection[key] = { tab, cat: sec.cat, items: [] };
+        okBySection[key].items.push(item.text);
       } else {
         totalRem++;
       }
     }));
   });
-  return { allBugs, totalOk, totalBug, totalRem, tabs };
+  return { allBugs, okBySection, totalOk, totalBug, totalRem, tabs };
 }
 
 function buildReport(includeWeekly) {
@@ -1287,9 +1294,74 @@ function buildReportHTML(includeWeekly) {
     }
   }
 
+  // Detailed OK section (PDF version includes this)
+  const { okBySection } = collectReportData(includeWeekly);
+  const okEntries = Object.values(okBySection);
+  if (okEntries.length) {
+    h += '<p style="margin-top:20px;page-break-before:auto;"><strong>─ Détail des tests OK ─</strong></p>';
+    okEntries.forEach(group => {
+      const ctx = group.cat + (includeWeekly && group.tab==='weekly' ? ' (hebdo)' : '');
+      h += '<p style="margin:10px 0 4px;color:#3A7D5C;font-weight:500;font-size:13px;">✓ ' + escHtml(ctx) + '</p>';
+      h += '<ul style="margin:0 0 6px 18px;padding:0;color:#1A1612;font-size:12px;line-height:1.6;">';
+      group.items.forEach(it => {
+        h += '<li style="margin-bottom:2px;">' + escHtml(it) + '</li>';
+      });
+      h += '</ul>';
+    });
+  }
+
   h += '<p style="margin-top:16px;">Bonne journée,</p>';
   h += '</div>';
   return h;
+}
+
+// Download the report as PDF file using html2pdf.js
+function downloadReportPDF() {
+  const btn = document.getElementById('pdf-btn');
+  const original = btn.innerHTML;
+  btn.innerHTML = '⏳ Génération...';
+  btn.disabled = true;
+
+  const inc = document.getElementById('include-weekly').checked;
+  const html = buildReportHTML(inc);
+
+  // Build a wrapper with A4-friendly width and white background
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'width:180mm;padding:14mm 15mm;background:#fff;color:#1A1612;font-family:-apple-system,Segoe UI,sans-serif;';
+  wrapper.innerHTML = html;
+  // Append off-screen so html2pdf can measure it
+  wrapper.style.position = 'fixed';
+  wrapper.style.left = '-9999px';
+  wrapper.style.top = '0';
+  document.body.appendChild(wrapper);
+
+  const today = new Date().toISOString().slice(0,10);
+  const bugCount = Object.values(bugs).filter(Boolean).length;
+  const filename = 'rapport-CS-' + today + (bugCount>0 ? '-'+bugCount+'bugs' : '-ok') + '.pdf';
+
+  const opt = {
+    margin: 0,
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.92 },
+    html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+  };
+
+  html2pdf().set(opt).from(wrapper).save().then(() => {
+    document.body.removeChild(wrapper);
+    btn.innerHTML = '✓ PDF généré';
+    setTimeout(() => {
+      btn.innerHTML = original;
+      btn.disabled = false;
+    }, 2000);
+  }).catch(err => {
+    console.error(err);
+    document.body.removeChild(wrapper);
+    btn.innerHTML = original;
+    btn.disabled = false;
+    alert('Erreur lors de la génération du PDF : ' + err.message);
+  });
 }
 
 function refreshMailPreview() {
