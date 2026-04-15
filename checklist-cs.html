@@ -1204,7 +1204,7 @@ function buildReport(includeWeekly) {
       const context = b.section + (includeWeekly && b.tab==='weekly' ? ' (hebdo)' : '');
       r += '#' + (idx+1) + ' [' + context + '] ' + description + '\n';
       if (b.text) r += '   → Check concerné : ' + b.item + '\n';
-      if (b.images.length) r += '   📎 ' + b.images.length + ' capture' + (b.images.length>1?'s':'') + ' jointe' + (b.images.length>1?'s':'') + ' (voir ci-dessous)\n';
+      if (b.images.length) r += '   📎 ' + b.images.length + ' capture' + (b.images.length>1?'s':'') + ' ci-dessous\n';
       r += '\n';
     });
   } else {
@@ -1255,44 +1255,39 @@ function buildReportHTML(includeWeekly) {
       let description = b.text || (b.item + ' — à corriger');
       if (!/[.!?…]$/.test(description)) description += '.';
       const context = b.section + (includeWeekly && b.tab==='weekly' ? ' (hebdo)' : '');
-      h += '<p style="margin:10px 0 4px;"><strong>#' + (idx+1) + '</strong> <span style="color:#8C8279;">[' + escHtml(context) + ']</span> ' + escHtml(description) + '</p>';
+      h += '<p style="margin:14px 0 4px;"><strong>#' + (idx+1) + '</strong> <span style="color:#8C8279;">[' + escHtml(context) + ']</span> ' + escHtml(description) + '</p>';
       if (b.text) h += '<p style="margin:0 0 2px 18px;color:#8C8279;font-size:12px;">→ Check concerné : ' + escHtml(b.item) + '</p>';
-      if (b.images.length) h += '<p style="margin:0 0 2px 18px;color:#C4773A;font-size:12px;">📎 ' + b.images.length + ' capture' + (b.images.length>1?'s':'') + ' ci-dessous</p>';
+      // Inline captures directly under the bug text
+      if (b.images.length) {
+        h += '<div style="margin:6px 0 10px 18px;">';
+        b.images.forEach(src => {
+          h += '<img src="' + src + '" alt="capture bug ' + (idx+1) + '" style="max-width:100%;max-height:400px;border:1px solid #E8E2D9;border-radius:6px;display:block;margin:6px 0;">';
+        });
+        h += '</div>';
+      }
     });
   } else {
     h += '<p>Aucun bug détecté sur ce test. ✅</p>';
   }
 
   const notesRaw = document.getElementById('notes').innerHTML;
-  const notesContent = extractBugContent(notesRaw); // reuse: {text, images}
-  if (notesContent.text) {
+  const notesContent = extractBugContent(notesRaw); // {text, images}
+  if (notesContent.text || notesContent.images.length) {
     h += '<p style="margin-top:16px;"><strong>─ Notes ─</strong></p>';
-    h += '<p style="white-space:pre-wrap;">' + escHtml(notesContent.text) + '</p>';
-  }
-
-  h += '<p style="margin-top:16px;">Bonne journée,</p>';
-
-  // Appendix: captures grouped per bug + notes captures
-  const bugsWithImages = allBugs.filter(b => b.images.length > 0);
-  const hasAnyCaptures = bugsWithImages.length > 0 || notesContent.images.length > 0;
-  if (hasAnyCaptures) {
-    h += '<hr style="margin:24px 0;border:none;border-top:1px solid #E8E2D9;">';
-    h += '<p><strong>📎 Captures jointes</strong></p>';
-    bugsWithImages.forEach(b => {
-      const idx = allBugs.indexOf(b) + 1;
-      h += '<p style="margin:16px 0 6px;"><strong>Bug #' + idx + '</strong> — ' + escHtml(b.section) + ' · ' + escHtml(b.item) + '</p>';
-      b.images.forEach(src => {
-        h += '<img src="' + src + '" alt="capture bug ' + idx + '" style="max-width:100%;max-height:400px;border:1px solid #E8E2D9;border-radius:6px;display:block;margin:6px 0;">';
-      });
-    });
+    if (notesContent.text) {
+      h += '<p style="white-space:pre-wrap;">' + escHtml(notesContent.text) + '</p>';
+    }
+    // Inline captures from notes right after the notes text
     if (notesContent.images.length) {
-      h += '<p style="margin:16px 0 6px;"><strong>Notes libres</strong></p>';
+      h += '<div style="margin:6px 0 10px;">';
       notesContent.images.forEach(src => {
         h += '<img src="' + src + '" alt="capture notes" style="max-width:100%;max-height:400px;border:1px solid #E8E2D9;border-radius:6px;display:block;margin:6px 0;">';
       });
+      h += '</div>';
     }
   }
 
+  h += '<p style="margin-top:16px;">Bonne journée,</p>';
   h += '</div>';
   return h;
 }
