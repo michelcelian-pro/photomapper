@@ -129,9 +129,35 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 .item-remark{padding:0 12px 10px 40px;display:none;}
 .item.is-bug .item-remark{display:block;}
-.item-remark textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:var(--bug-light);border:1px solid #DEC5C5;border-radius:5px;padding:7px 10px;resize:none;min-height:48px;outline:none;line-height:1.5;}
-.item-remark textarea::placeholder{color:#C08080;}
-.item-remark textarea:focus{border-color:var(--bug);}
+.rich-editor{width:100%;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:var(--bug-light);border:1px solid #DEC5C5;border-radius:5px;padding:7px 10px;min-height:48px;outline:none;line-height:1.5;white-space:pre-wrap;word-wrap:break-word;}
+.rich-editor:empty::before{content:attr(data-placeholder);color:#C08080;pointer-events:none;}
+.rich-editor:focus{border-color:var(--bug);}
+.rich-editor img{max-width:100%;max-height:240px;border-radius:4px;margin:4px 0;display:block;border:1px solid rgba(0,0,0,0.08);cursor:zoom-in;}
+.rich-editor.drag-target{border-color:var(--bug);background:#FAEAEA;}
+.notes-block .rich-editor{background:transparent;border:none;font-size:13px;color:var(--text);padding:0;min-height:56px;line-height:1.6;}
+.notes-block .rich-editor:empty::before{color:var(--muted);}
+.notes-block .rich-editor:focus{border:none;}
+.notes-block .rich-editor.drag-target{background:var(--accent-light);border:1px dashed var(--accent);padding:6px;}
+
+/* IMAGE LIGHTBOX */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;align-items:center;justify-content:center;padding:2rem;cursor:zoom-out;}
+.lightbox.open{display:flex;}
+.lightbox img{max-width:100%;max-height:100%;border-radius:6px;}
+
+/* SECTION TOGGLE */
+.section-toggle{
+  width:22px;height:22px;border:1px solid var(--border);background:var(--surface);
+  cursor:pointer;color:var(--text);font-size:11px;display:inline-flex;align-items:center;
+  justify-content:center;border-radius:5px;transition:all .15s;flex-shrink:0;padding:0;
+  line-height:1;
+}
+.section-toggle:hover{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
+.section-header.clickable{cursor:pointer;}
+.section-header.clickable:hover .section-toggle{background:var(--accent-light);border-color:var(--accent);color:var(--accent);}
+.section-body{overflow:hidden;transition:max-height .25s ease, opacity .2s ease;max-height:3000px;opacity:1;}
+.section-body.collapsed{max-height:0 !important;opacity:0;}
+.section-count-badge{font-size:10px;color:var(--muted);font-weight:400;opacity:0;transition:opacity .15s;pointer-events:none;white-space:nowrap;}
+.section-count-badge.visible{opacity:1;}
 
 /* ADD BUTTONS */
 .add-item-btn{width:100%;height:32px;border:1px dashed var(--border);border-radius:8px;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px;}
@@ -222,7 +248,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="tab-content" id="tab-weekly"></div>
   <div class="notes-block">
     <div class="notes-label">Notes libres</div>
-    <textarea id="notes" placeholder="Observations générales, contexte..."></textarea>
+    <div id="notes" class="rich-editor" contenteditable="true" data-placeholder="Observations générales, contexte... (colle ou dépose une capture)"></div>
   </div>
 </main>
 
@@ -236,6 +262,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <button class="btn" onclick="openMailModal()">Envoyer le rapport</button>
   </div>
 </div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()"><img id="lightbox-img" alt=""></div>
 
 <div class="modal-backdrop" id="modal" onclick="closeIfBackdrop(event)">
   <div class="modal">
@@ -326,7 +354,7 @@ const DEFAULT_DATA = {
 };
 
 let appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
-let checks = {}, bugs = {}, remarks = {}, notes = '';
+let checks = {}, bugs = {}, remarks = {}, notes = '', collapsed = {};
 let editMode = false;
 let currentTab = 'daily';
 let chronoSec = 0, chronoRunning = false, chronoInterval = null;
@@ -338,6 +366,7 @@ function loadAll() {
     if (!raw) return;
     const saved = JSON.parse(raw);
     if (saved.data) appData = saved.data;
+    collapsed = saved.collapsed || {};
     const today = new Date().toDateString();
     if (saved.date === today) {
       checks = saved.checks || {};
@@ -354,13 +383,126 @@ function saveAll() {
     localStorage.setItem(SAVE_KEY, JSON.stringify({
       date: new Date().toDateString(),
       data: appData, checks, bugs, remarks, notes,
-      chrono: chronoSec
+      chrono: chronoSec, collapsed
     }));
   } catch(e) {}
 }
 
 // ── KEY ──
 function k(tab, ci, ii) { return tab+'_'+ci+'_'+ii; }
+
+// ── IMAGE COMPRESSION ──
+const MAX_IMG_DIM = 1600;
+const JPEG_QUALITY = 0.85;
+function compressImage(blob) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > MAX_IMG_DIM || height > MAX_IMG_DIM) {
+        const ratio = Math.min(MAX_IMG_DIM / width, MAX_IMG_DIM / height);
+        width = Math.round(width * ratio); height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', JPEG_QUALITY));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image load failed')); };
+    img.src = url;
+  });
+}
+
+function insertImageAtCursor(editor, dataUrl) {
+  editor.focus();
+  const sel = window.getSelection();
+  let range;
+  if (sel && sel.rangeCount && editor.contains(sel.anchorNode)) {
+    range = sel.getRangeAt(0);
+    range.deleteContents();
+  } else {
+    range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+  }
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.alt = 'capture';
+  range.insertNode(img);
+  range.setStartAfter(img); range.setEndAfter(img);
+  sel.removeAllRanges(); sel.addRange(range);
+  editor.dispatchEvent(new Event('input', { bubbles:true }));
+}
+
+async function handleFilesForEditor(editor, files) {
+  for (const file of files) {
+    if (!file.type.startsWith('image/')) continue;
+    try {
+      const dataUrl = await compressImage(file);
+      insertImageAtCursor(editor, dataUrl);
+      if (saveAll() === 'quota') {
+        alert("Stockage plein : la capture n'a pas pu être sauvegardée. Supprime quelques images ou notes avant d'en ajouter.");
+      }
+    } catch(e) { console.error(e); }
+  }
+}
+
+function attachRichEditor(editor, onSave) {
+  editor.addEventListener('input', () => { onSave(editor.innerHTML); });
+  editor.addEventListener('paste', e => {
+    const items = (e.clipboardData || {}).items || [];
+    const imgs = [];
+    for (const it of items) {
+      if (it.kind === 'file' && it.type.startsWith('image/')) {
+        const f = it.getAsFile(); if (f) imgs.push(f);
+      }
+    }
+    if (imgs.length) {
+      e.preventDefault();
+      handleFilesForEditor(editor, imgs);
+      return;
+    }
+    // Strip formatting from text paste: insert plain text instead of HTML
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    if (text) {
+      e.preventDefault();
+      document.execCommand('insertText', false, text);
+    }
+  });
+  editor.addEventListener('dragover', e => { e.preventDefault(); editor.classList.add('drag-target'); });
+  editor.addEventListener('dragleave', () => editor.classList.remove('drag-target'));
+  editor.addEventListener('drop', e => {
+    e.preventDefault(); editor.classList.remove('drag-target');
+    const files = Array.from((e.dataTransfer || {}).files || []);
+    if (files.length) handleFilesForEditor(editor, files);
+  });
+  editor.addEventListener('click', e => {
+    if (e.target && e.target.tagName === 'IMG') { e.preventDefault(); openLightbox(e.target.src); }
+  });
+}
+
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightbox-img').src = '';
+}
+
+// Strip HTML → plain text (replace <img> with [capture])
+function htmlToPlain(html) {
+  if (!html) return '';
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  tmp.querySelectorAll('img').forEach(img => img.replaceWith(document.createTextNode('[capture]')));
+  tmp.querySelectorAll('br').forEach(br => br.replaceWith(document.createTextNode('\n')));
+  tmp.querySelectorAll('div,p').forEach(el => { el.append(document.createTextNode('\n')); });
+  return (tmp.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
+}
 
 // ── DRAG & DROP ──
 let dragData = null;
@@ -436,12 +578,23 @@ function buildTab(tab) {
 }
 
 function buildSection(tab, ci, section) {
+  const colKey = tab+'_'+ci;
+  const isCollapsed = !!collapsed[colKey];
+
   const sec = document.createElement('div');
   sec.className = 'section' + (section.indent ? ' indented' : '');
   sec.id = 'sec-'+tab+'-'+ci;
 
   const hdr = document.createElement('div');
-  hdr.className = 'section-header';
+  hdr.className = 'section-header' + (!editMode ? ' clickable' : '');
+
+  // ── Chevron toggle (toujours présent) ──
+  const chevron = document.createElement('button');
+  chevron.className = 'section-toggle';
+  chevron.textContent = isCollapsed ? '▶' : '▼';
+  chevron.title = isCollapsed ? 'Déplier' : 'Replier';
+  chevron.onclick = e => { e.stopPropagation(); toggleCollapse(tab, ci); };
+  hdr.appendChild(chevron);
 
   if (editMode) {
     const dh = document.createElement('div');
@@ -474,17 +627,33 @@ function buildSection(tab, ci, section) {
     del.innerHTML = '🗑'; del.onclick = () => deleteSection(tab, ci);
     hdr.appendChild(del);
   } else {
+    // Clic sur le header entier pour replier/déplier
+    hdr.onclick = () => toggleCollapse(tab, ci);
     const nm = document.createElement('span'); nm.className = 'section-name'; nm.textContent = section.cat;
     hdr.appendChild(nm);
     if (section.link) {
       const a = document.createElement('a');
       a.className = 'item-link'; a.href = section.link; a.target = '_blank';
       a.textContent = '↗'; a.title = 'Ouvrir';
+      a.onclick = e => e.stopPropagation();
       hdr.appendChild(a);
     }
     const line = document.createElement('div'); line.className = 'section-line'; hdr.appendChild(line);
+
+    // Badge compteur (visible uniquement quand replié)
+    const badge = document.createElement('span');
+    badge.className = 'section-count-badge';
+    badge.id = 'badge-'+tab+'-'+ci;
+    if (isCollapsed) badge.classList.add('visible');
+    hdr.appendChild(badge);
+    refreshBadge(tab, ci, badge);
   }
   sec.appendChild(hdr);
+
+  // ── Corps collapsible ──
+  const body = document.createElement('div');
+  body.className = 'section-body' + (isCollapsed ? ' collapsed' : '');
+  body.id = 'body-'+tab+'-'+ci;
 
   if (editMode) {
     const descInp = document.createElement('input');
@@ -492,16 +661,16 @@ function buildSection(tab, ci, section) {
     descInp.value = section.desc || '';
     descInp.placeholder = 'Points à vérifier (optionnel) — ex: photos, prix, panier...';
     descInp.onchange = e => { appData[tab][ci].desc = e.target.value; saveAll(); };
-    sec.appendChild(descInp);
+    body.appendChild(descInp);
   } else if (section.desc) {
     const desc = document.createElement('div');
     desc.className = 'section-desc';
     desc.textContent = '→ ' + section.desc;
-    sec.appendChild(desc);
+    body.appendChild(desc);
   }
 
   section.items.forEach((item, ii) => {
-    sec.appendChild(buildItem(tab, ci, ii, item));
+    body.appendChild(buildItem(tab, ci, ii, item));
   });
 
   if (editMode) {
@@ -509,9 +678,40 @@ function buildSection(tab, ci, section) {
     addBtn.className = 'add-item-btn';
     addBtn.innerHTML = '+ Ajouter un item';
     addBtn.onclick = () => addItem(tab, ci);
-    sec.appendChild(addBtn);
+    body.appendChild(addBtn);
   }
+
+  sec.appendChild(body);
   return sec;
+}
+
+function refreshBadge(tab, ci, badgeEl) {
+  const el = badgeEl || document.getElementById('badge-'+tab+'-'+ci);
+  if (!el) return;
+  let done = 0, total = 0;
+  appData[tab][ci].items.forEach((_, ii) => {
+    total++;
+    const K = k(tab, ci, ii);
+    if (checks[K]) done++;
+    else if (bugs[K]) done++;
+  });
+  el.textContent = done+'/'+total;
+}
+
+function toggleCollapse(tab, ci) {
+  const colKey = tab+'_'+ci;
+  collapsed[colKey] = !collapsed[colKey];
+  saveAll();
+  const body = document.getElementById('body-'+tab+'-'+ci);
+  const chev = document.querySelector('#sec-'+tab+'-'+ci+' .section-toggle');
+  const badge = document.getElementById('badge-'+tab+'-'+ci);
+  const isNowCollapsed = !!collapsed[colKey];
+  if (body) body.classList.toggle('collapsed', isNowCollapsed);
+  if (chev) { chev.textContent = isNowCollapsed ? '▶' : '▼'; chev.title = isNowCollapsed ? 'Déplier' : 'Replier'; }
+  if (badge) {
+    badge.classList.toggle('visible', isNowCollapsed);
+    if (isNowCollapsed) refreshBadge(tab, ci, badge);
+  }
 }
 
 function buildItem(tab, ci, ii, item) {
@@ -651,11 +851,13 @@ function buildItem(tab, ci, ii, item) {
 
     const remark = document.createElement('div');
     remark.className = 'item-remark';
-    const ta = document.createElement('textarea');
-    ta.placeholder = 'Décris le bug...';
-    ta.value = remarks[K] || '';
-    ta.onchange = e => { remarks[K] = e.target.value; saveAll(); };
-    remark.appendChild(ta);
+    const rich = document.createElement('div');
+    rich.className = 'rich-editor';
+    rich.contentEditable = 'true';
+    rich.setAttribute('data-placeholder', 'Décris le bug... (colle ou dépose une capture)');
+    rich.innerHTML = remarks[K] || '';
+    attachRichEditor(rich, v => { remarks[K] = v; saveAll(); });
+    remark.appendChild(rich);
     div.appendChild(remark);
   }
 
@@ -668,6 +870,7 @@ function toggleCheck(K, tab, ci, ii) {
   checks[K] = !checks[K];
   if (checks[K]) bugs[K] = false;
   refreshItem(K, tab, ci, ii);
+  refreshBadge(tab, ci);
   updateCounts(tab); updateStats(); saveAll();
 }
 
@@ -676,6 +879,7 @@ function toggleBug(K, tab, ci, ii) {
   bugs[K] = !bugs[K];
   if (bugs[K]) checks[K] = false;
   refreshItem(K, tab, ci, ii);
+  refreshBadge(tab, ci);
   updateCounts(tab); updateStats(); saveAll();
 }
 
@@ -839,7 +1043,7 @@ function resetAll() {
   chronoSec=0; clearInterval(chronoInterval); chronoRunning=false;
   document.getElementById('chrono').textContent='00:00';
   document.getElementById('chrono-btn').textContent='Démarrer';
-  document.getElementById('notes').value=''; notes='';
+  document.getElementById('notes').innerHTML=''; notes='';
   buildTab('daily'); buildTab('weekly'); updateStats(); saveAll();
 }
 
@@ -852,7 +1056,7 @@ function buildReport() {
   ['daily','weekly'].forEach(tab => appData[tab].forEach((sec,ci) => sec.items.forEach((item,ii) => {
     const K=k(tab,ci,ii);
     const entry='['+sec.cat+'] '+item.text;
-    if (bugs[K]) bugList.push(entry+(remarks[K]?'\n  → '+remarks[K]:''));
+    if (bugs[K]) bugList.push(entry+(remarks[K]?'\n  → '+htmlToPlain(remarks[K]):''));
     else if (checks[K]) okList.push(entry);
     else remList.push(entry);
   })));
@@ -863,7 +1067,7 @@ function buildReport() {
   if (bugList.length) { r+='🔴 BUGS DÉTECTÉS\n'; bugList.forEach(b=>r+='• '+b+'\n'); r+='\n'; }
   if (remList.length) { r+='⏳ NON VÉRIFIÉS\n'; remList.forEach(b=>r+='• '+b+'\n'); r+='\n'; }
   if (okList.length) { r+='✅ OK\n'; okList.forEach(b=>r+='• '+b+'\n'); r+='\n'; }
-  const n=document.getElementById('notes').value.trim();
+  const n=htmlToPlain(document.getElementById('notes').innerHTML).trim();
   if (n) r+='📝 NOTES\n'+n+'\n';
   return r;
 }
@@ -888,8 +1092,9 @@ function sendMail() {
 document.getElementById('header-date').textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
 loadAll();
 buildTab('daily'); buildTab('weekly'); updateStats();
-document.getElementById('notes').value = notes;
-document.getElementById('notes').addEventListener('input', function() { notes=this.value; saveAll(); });
+const notesEl = document.getElementById('notes');
+notesEl.innerHTML = notes;
+attachRichEditor(notesEl, v => { notes = v; saveAll(); });
 const cm=Math.floor(chronoSec/60).toString().padStart(2,'0');
 const cs=(chronoSec%60).toString().padStart(2,'0');
 document.getElementById('chrono').textContent=cm+':'+cs;
