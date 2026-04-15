@@ -275,7 +275,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="modal-body">
       <div class="modal-field">
         <div class="modal-label">Destinataire</div>
-        <input class="modal-input" id="mail-to" type="email" placeholder="prenom@carrelagesignature.com">
+        <input class="modal-input" id="mail-to" type="email" placeholder="prenom@carrelagesignature.com" list="mail-history">
+        <datalist id="mail-history"></datalist>
+        <div id="mail-recents" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;"></div>
+      </div>
+      <div class="modal-field">
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);cursor:pointer;">
+          <input type="checkbox" id="include-weekly" style="width:16px;height:16px;cursor:pointer;">
+          <span>Inclure aussi le test <strong>hebdomadaire</strong></span>
+        </label>
       </div>
       <div class="modal-field">
         <div class="modal-label">Aperçu du rapport</div>
@@ -1061,42 +1069,104 @@ function resetAll() {
 }
 
 // ── REPORT ──
-function buildReport() {
+const MAIL_HISTORY_KEY = 'cs_mail_history';
+function loadMailHistory() {
+  try { return JSON.parse(localStorage.getItem(MAIL_HISTORY_KEY) || '[]'); } catch(e) { return []; }
+}
+function saveMailHistory(list) {
+  try { localStorage.setItem(MAIL_HISTORY_KEY, JSON.stringify(list.slice(0, 8))); } catch(e) {}
+}
+function rememberMail(addr) {
+  if (!addr) return;
+  let list = loadMailHistory().filter(x => x !== addr);
+  list.unshift(addr);
+  saveMailHistory(list);
+}
+
+function buildReport(includeWeekly) {
   const today = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const m=Math.floor(chronoSec/60), s=chronoSec%60;
   const dur = m+'min'+(s>0?' '+s+'s':'');
-  let bugList=[], okList=[], remList=[];
-  ['daily','weekly'].forEach(tab => appData[tab].forEach((sec,ci) => sec.items.forEach((item,ii) => {
-    const K=k(tab,ci,ii);
-    const entry='['+sec.cat+'] '+item.text;
-    if (bugs[K]) bugList.push(entry+(remarks[K]?'\n  → '+htmlToPlain(remarks[K]):''));
-    else if (checks[K]) okList.push(entry);
-    else remList.push(entry);
-  })));
-  let r='Test quotidien — carrelagesignature.com\n';
-  r+=today+' · '+dur+'\n';
-  r+='─────────────────────────────────\n';
-  r+='✅ '+okList.length+' OK   🔴 '+bugList.length+' bug(s)   ⏳ '+remList.length+' non vérifié(s)\n\n';
-  if (bugList.length) { r+='🔴 BUGS DÉTECTÉS\n'; bugList.forEach(b=>r+='• '+b+'\n'); r+='\n'; }
-  if (remList.length) { r+='⏳ NON VÉRIFIÉS\n'; remList.forEach(b=>r+='• '+b+'\n'); r+='\n'; }
-  if (okList.length) { r+='✅ OK\n'; okList.forEach(b=>r+='• '+b+'\n'); r+='\n'; }
+  const tabs = includeWeekly ? ['daily','weekly'] : ['daily'];
+
+  // Buckets per tab (so we can label them)
+  const buckets = {};
+  tabs.forEach(tab => {
+    buckets[tab] = { ok:[], bug:[], rem:[] };
+    appData[tab].forEach((sec,ci) => sec.items.forEach((item,ii) => {
+      const K=k(tab,ci,ii);
+      const entry='['+sec.cat+'] '+item.text;
+      if (bugs[K]) buckets[tab].bug.push(entry+(remarks[K]?'\n  → '+htmlToPlain(remarks[K]):''));
+      else if (checks[K]) buckets[tab].ok.push(entry);
+      else buckets[tab].rem.push(entry);
+    }));
+  });
+
+  let totalOk=0, totalBug=0, totalRem=0;
+  tabs.forEach(t => { totalOk += buckets[t].ok.length; totalBug += buckets[t].bug.length; totalRem += buckets[t].rem.length; });
+
+  const title = includeWeekly ? 'Test quotidien + hebdomadaire' : 'Test quotidien';
+  let r = title + ' — carrelagesignature.com\n';
+  r += today+' · '+dur+'\n';
+  r += '─────────────────────────────────\n';
+  r += '✅ '+totalOk+' OK   🔴 '+totalBug+' bug(s)   ⏳ '+totalRem+' non vérifié(s)\n\n';
+
+  const labels = { daily:'QUOTIDIEN', weekly:'HEBDOMADAIRE' };
+  tabs.forEach(tab => {
+    const b = buckets[tab];
+    if (!b.ok.length && !b.bug.length && !b.rem.length) return;
+    if (includeWeekly) r += '━━━ ' + labels[tab] + ' ━━━\n';
+    if (b.bug.length) { r+='🔴 BUGS DÉTECTÉS\n'; b.bug.forEach(x=>r+='• '+x+'\n'); r+='\n'; }
+    if (b.rem.length) { r+='⏳ NON VÉRIFIÉS\n'; b.rem.forEach(x=>r+='• '+x+'\n'); r+='\n'; }
+    if (b.ok.length) { r+='✅ OK\n'; b.ok.forEach(x=>r+='• '+x+'\n'); r+='\n'; }
+  });
+
   const n=htmlToPlain(document.getElementById('notes').innerHTML).trim();
   if (n) r+='📝 NOTES\n'+n+'\n';
   return r;
 }
 
+function refreshMailPreview() {
+  const inc = document.getElementById('include-weekly').checked;
+  document.getElementById('mail-preview').textContent = buildReport(inc);
+}
+
+function renderMailRecents() {
+  const list = loadMailHistory();
+  const wrap = document.getElementById('mail-recents');
+  const dl = document.getElementById('mail-history');
+  wrap.innerHTML = ''; dl.innerHTML = '';
+  list.forEach(addr => {
+    const opt = document.createElement('option'); opt.value = addr; dl.appendChild(opt);
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.textContent = addr;
+    chip.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:11px;padding:3px 8px;border-radius:99px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;';
+    chip.onmouseenter = () => { chip.style.borderColor = 'var(--accent)'; chip.style.color = 'var(--accent)'; };
+    chip.onmouseleave = () => { chip.style.borderColor = 'var(--border)'; chip.style.color = 'var(--muted)'; };
+    chip.onclick = () => { document.getElementById('mail-to').value = addr; };
+    wrap.appendChild(chip);
+  });
+}
+
 function openMailModal() {
-  document.getElementById('mail-preview').textContent = buildReport();
+  document.getElementById('include-weekly').checked = false;
+  renderMailRecents();
+  refreshMailPreview();
   document.getElementById('modal').classList.add('open');
 }
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
 function closeIfBackdrop(e) { if(e.target===document.getElementById('modal')) closeModal(); }
 function sendMail() {
   const to=document.getElementById('mail-to').value.trim();
+  if (!to) { alert('Saisis un destinataire'); return; }
+  const inc = document.getElementById('include-weekly').checked;
   const today=new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
   const bugCount=Object.values(bugs).filter(Boolean).length;
-  const subject=encodeURIComponent('Test CS — '+today+(bugCount>0?' 🔴 '+bugCount+' bug(s)':' ✅ OK'));
-  const body=encodeURIComponent(buildReport());
+  const tag = inc ? 'Test CS (quotidien + hebdo)' : 'Test CS';
+  const subject=encodeURIComponent(tag+' — '+today+(bugCount>0?' 🔴 '+bugCount+' bug(s)':' ✅ OK'));
+  const body=encodeURIComponent(buildReport(inc));
+  rememberMail(to);
   window.location.href='mailto:'+to+'?subject='+subject+'&body='+body;
   closeModal();
 }
@@ -1108,6 +1178,7 @@ buildTab('daily'); buildTab('weekly'); updateStats();
 const notesEl = document.getElementById('notes');
 notesEl.innerHTML = notes;
 attachRichEditor(notesEl, v => { notes = v; saveAll(); });
+document.getElementById('include-weekly').addEventListener('change', refreshMailPreview);
 const cm=Math.floor(chronoSec/60).toString().padStart(2,'0');
 const cs=(chronoSec%60).toString().padStart(2,'0');
 document.getElementById('chrono').textContent=cm+':'+cs;
