@@ -1153,16 +1153,6 @@ function buildReport(includeWeekly) {
     r += 'Aucun bug détecté sur ce test. ✅\n\n';
   }
 
-  // Non-vérifiés — short list
-  if (totalRem > 0) {
-    r += '─ Non vérifiés ─\n';
-    allRem.forEach(x => {
-      const context = x.section + (includeWeekly && x.tab==='weekly' ? ' (hebdo)' : '');
-      r += '• [' + context + '] ' + x.item + '\n';
-    });
-    r += '\n';
-  }
-
   // Notes libres
   const notesText = htmlToPlain(document.getElementById('notes').innerHTML).trim();
   if (notesText) {
