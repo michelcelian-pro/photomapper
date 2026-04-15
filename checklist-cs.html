@@ -445,6 +445,12 @@ function buildSection(tab, ci, section) {
     inp.value = section.cat;
     inp.onchange = e => { appData[tab][ci].cat = e.target.value; saveAll(); };
     hdr.appendChild(inp);
+    const linkInp = document.createElement('input');
+    linkInp.className = 'item-link-input';
+    linkInp.value = section.link || '';
+    linkInp.placeholder = 'URL (optionnel)';
+    linkInp.onchange = e => { appData[tab][ci].link = e.target.value; saveAll(); };
+    hdr.appendChild(linkInp);
     const line = document.createElement('div'); line.className = 'section-line'; hdr.appendChild(line);
     const addSub = document.createElement('button');
     addSub.className = 'btn-icon'; addSub.title = 'Ajouter une sous-catégorie';
@@ -457,6 +463,12 @@ function buildSection(tab, ci, section) {
   } else {
     const nm = document.createElement('span'); nm.className = 'section-name'; nm.textContent = section.cat;
     hdr.appendChild(nm);
+    if (section.link) {
+      const a = document.createElement('a');
+      a.className = 'item-link'; a.href = section.link; a.target = '_blank';
+      a.textContent = '↗'; a.title = 'Ouvrir';
+      hdr.appendChild(a);
+    }
     const line = document.createElement('div'); line.className = 'section-line'; hdr.appendChild(line);
   }
   sec.appendChild(hdr);
