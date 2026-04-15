@@ -226,6 +226,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div class="header-right">
     <div class="chrono" id="chrono">00:00</div>
     <button class="btn" id="chrono-btn" onclick="toggleChrono()">Démarrer</button>
+    <button class="btn" id="collapse-btn" onclick="toggleCollapseAll()" title="Plier / déplier toutes les catégories">▶ Tout plier</button>
     <button class="btn edit-mode" id="edit-btn" onclick="toggleEditMode()">✏️ Modifier</button>
     <button class="btn" onclick="resetAll()">Reset</button>
   </div>
@@ -696,6 +697,18 @@ function refreshBadge(tab, ci, badgeEl) {
     else if (bugs[K]) done++;
   });
   el.textContent = done+'/'+total;
+}
+
+function toggleCollapseAll() {
+  // If anything is expanded → collapse all. Else expand all.
+  const allKeys = [];
+  ['daily','weekly'].forEach(tab => appData[tab].forEach((_, ci) => allKeys.push(tab+'_'+ci)));
+  const anyExpanded = allKeys.some(k => !collapsed[k]);
+  allKeys.forEach(k => { collapsed[k] = anyExpanded; });
+  saveAll();
+  buildTab('daily'); buildTab('weekly');
+  const btn = document.getElementById('collapse-btn');
+  if (btn) btn.innerHTML = anyExpanded ? '▼ Tout déplier' : '▶ Tout plier';
 }
 
 function toggleCollapse(tab, ci) {
