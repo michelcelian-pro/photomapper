@@ -292,6 +292,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal()">Annuler</button>
+      <button class="btn" onclick="copyReport()" id="copy-btn">📋 Copier le rapport</button>
       <button class="btn primary" onclick="sendMail()">Ouvrir dans Mail</button>
     </div>
   </div>
@@ -1157,17 +1158,74 @@ function openMailModal() {
 }
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
 function closeIfBackdrop(e) { if(e.target===document.getElementById('modal')) closeModal(); }
-function sendMail() {
+async function copyReport() {
+  const inc = document.getElementById('include-weekly').checked;
+  const text = buildReport(inc);
+  const btn = document.getElementById('copy-btn');
+  const original = btn.innerHTML;
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.innerHTML = '✓ Copié';
+    btn.style.background = 'var(--ok-light)';
+    btn.style.borderColor = 'var(--ok)';
+    btn.style.color = 'var(--ok)';
+  } catch(e) {
+    // Fallback: temporary textarea + execCommand
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); btn.innerHTML = '✓ Copié'; }
+    catch(e2) { alert('Impossible de copier automatiquement. Sélectionne le texte dans l\'aperçu et Ctrl+C.'); }
+    document.body.removeChild(ta);
+  }
+  setTimeout(() => {
+    btn.innerHTML = original;
+    btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = '';
+  }, 2000);
+}
+
+async function sendMail() {
   const to=document.getElementById('mail-to').value.trim();
   if (!to) { alert('Saisis un destinataire'); return; }
   const inc = document.getElementById('include-weekly').checked;
   const today=new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
   const bugCount=Object.values(bugs).filter(Boolean).length;
   const tag = inc ? 'Test CS (quotidien + hebdo)' : 'Test CS';
-  const subject=encodeURIComponent(tag+' — '+today+(bugCount>0?' 🔴 '+bugCount+' bug(s)':' ✅ OK'));
-  const body=encodeURIComponent(buildReport(inc));
+  const subjectPlain = tag+' — '+today+(bugCount>0?' 🔴 '+bugCount+' bug(s)':' ✅ OK');
+  const subject = encodeURIComponent(subjectPlain);
+  const reportText = buildReport(inc);
+  const bodyEncoded = encodeURIComponent(reportText);
+
   rememberMail(to);
-  window.location.href='mailto:'+to+'?subject='+subject+'&body='+body;
+
+  // mailto URLs fail silently when too long (~1800-2000 char limit on most OS).
+  // Strategy: always copy report to clipboard first, then open mailto.
+  // If body fits, include it in mailto; else open with just subject + a note.
+  const MAILTO_LIMIT = 1800;
+  const fullUrl = 'mailto:'+to+'?subject='+subject+'&body='+bodyEncoded;
+
+  // Copy to clipboard as safety net
+  try { await navigator.clipboard.writeText(reportText); } catch(e) {}
+
+  let url;
+  if (fullUrl.length <= MAILTO_LIMIT) {
+    url = fullUrl;
+  } else {
+    const note = encodeURIComponent('Le rapport a été copié dans le presse-papier — colle-le ici (Cmd+V / Ctrl+V).\n\n');
+    url = 'mailto:'+to+'?subject='+subject+'&body='+note;
+    alert('Rapport trop long pour être inséré automatiquement dans le mail. Il a été copié dans le presse-papier — colle-le (Cmd+V) dans le corps du mail qui va s\'ouvrir.');
+  }
+
+  // Use an anchor click rather than window.location — more reliable across browsers
+  const a = document.createElement('a');
+  a.href = url;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
   closeModal();
 }
 
