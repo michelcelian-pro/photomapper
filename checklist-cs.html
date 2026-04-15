@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tests CS — Carrelage Signature</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F5F2ED;--surface:#FDFBF8;--border:#E8E2D9;
+  --text:#1A1612;--muted:#8C8279;--accent:#C4773A;--accent-light:#F5EDE3;
+  --ok:#3A7D5C;--ok-light:#EBF5F0;--bug:#C43A3A;--bug-light:#FAEAEA;
+  --edit:#5A6FBF;--edit-light:#EEF1FB;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;}
+
+/* HEADER */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;}
+.header-left{display:flex;align-items:center;gap:14px;}
+.logo-mark{width:32px;height:32px;background:var(--text);border-radius:6px;display:flex;align-items:center;justify-content:center;}
+.logo-mark svg{width:16px;height:16px;}
+.header-title{font-family:'DM Serif Display',serif;font-size:17px;letter-spacing:-0.01em;}
+.header-sub{font-size:12px;color:var(--muted);font-weight:300;}
+.header-right{display:flex;align-items:center;gap:8px;}
+.chrono{font-family:'DM Serif Display',serif;font-size:20px;letter-spacing:0.02em;min-width:58px;text-align:right;}
+
+/* BUTTONS */
+.btn{height:34px;padding:0 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn:hover{background:var(--bg);border-color:#ccc;}
+.btn.primary{background:var(--text);color:var(--surface);border-color:var(--text);}
+.btn.primary:hover{opacity:.85;}
+.btn.edit-mode{background:var(--edit-light);color:var(--edit);border-color:#C5CCE8;}
+.btn.edit-mode:hover{background:#E5E9F8;}
+.btn.edit-active{background:var(--edit);color:#fff;border-color:var(--edit);}
+.btn.danger{color:var(--bug);border-color:var(--bug);background:transparent;}
+.btn.danger:hover{background:var(--bug-light);}
+
+/* TABS */
+.tabs{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;}
+.tab{height:52px;padding:0 20px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;user-select:none;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--text);font-weight:500;border-bottom-color:var(--accent);}
+.tab-count{height:18px;min-width:18px;padding:0 5px;border-radius:99px;background:var(--border);color:var(--muted);font-size:10px;font-weight:500;display:flex;align-items:center;justify-content:center;}
+.tab.active .tab-count{background:var(--accent-light);color:var(--accent);}
+
+/* EDIT BANNER */
+.edit-banner{display:none;background:var(--edit-light);border-bottom:1px solid #C5CCE8;padding:8px 2rem;font-size:12px;color:var(--edit);font-weight:500;align-items:center;justify-content:space-between;gap:12px;}
+.edit-banner.visible{display:flex;}
+.edit-banner-hint{font-weight:400;color:#7A88C0;}
+
+/* PROGRESS */
+.progress-bar{height:3px;background:var(--border);overflow:hidden;}
+.progress-fill{height:100%;background:var(--accent);width:0%;transition:width .4s ease;}
+
+/* MAIN */
+.main{max-width:760px;margin:0 auto;padding:2rem 1.5rem 5rem;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* SECTION */
+.section{margin-bottom:1.5rem;animation:fadeIn .2s ease both;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.section-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 2px;}
+.section-name{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
+.section-name-input{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--edit);background:var(--edit-light);border:1px solid #C5CCE8;border-radius:4px;padding:2px 8px;outline:none;font-family:'DM Sans',sans-serif;min-width:120px;}
+.section-name-input:focus{border-color:var(--edit);}
+.section-line{flex:1;height:1px;background:var(--border);}
+.btn-icon{width:24px;height:24px;border-radius:4px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;transition:all .15s;flex-shrink:0;}
+.btn-icon:hover{background:var(--bg);color:var(--text);}
+.btn-icon.delete:hover{background:var(--bug-light);color:var(--bug);}
+
+/* ITEM */
+.item{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;overflow:hidden;transition:border-color .15s;}
+.item:hover{border-color:#cfc9c0;}
+.item.is-ok{border-color:#C5DDD1;background:#FAFCFB;}
+.item.is-bug{border-color:#DEC5C5;background:#FDFAFA;}
+.item.edit-mode-item{border-color:#C5CCE8;background:#FAFBFE;}
+
+.item-main{display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;}
+.item.edit-mode-item .item-main{cursor:default;}
+
+.item-check{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;background:var(--surface);}
+.item.is-ok .item-check{background:var(--ok);border-color:var(--ok);}
+.item.is-ok .item-check::after{content:'';width:9px;height:6px;border-left:1.5px solid #fff;border-bottom:1.5px solid #fff;transform:rotate(-45deg) translateY(-1px);display:block;}
+.edit-mode-item .item-check{opacity:.3;pointer-events:none;}
+
+.item-label{flex:1;font-size:13px;color:var(--text);font-weight:400;line-height:1.4;}
+.item.is-ok .item-label{color:var(--muted);text-decoration:line-through;text-decoration-color:#C5DDD1;}
+
+.item-label-input{flex:1;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--edit);background:var(--edit-light);border:1px solid #C5CCE8;border-radius:5px;padding:4px 8px;outline:none;line-height:1.4;}
+.item-label-input:focus{border-color:var(--edit);}
+
+.item-link{width:26px;height:26px;border-radius:5px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;text-decoration:none;color:var(--muted);font-size:11px;transition:all .15s;}
+.item-link:hover{background:var(--bg);color:var(--text);border-color:#ccc;}
+
+.item-link-input{font-size:11px;font-family:'DM Sans',sans-serif;color:var(--muted);background:transparent;border:1px solid var(--border);border-radius:5px;padding:3px 7px;outline:none;width:180px;}
+.item-link-input:focus{border-color:var(--edit);color:var(--text);}
+
+.status-btn{height:24px;padding:0 10px;border-radius:99px;border:1px solid var(--border);background:transparent;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;cursor:pointer;color:var(--muted);transition:all .15s;}
+.status-btn:hover{border-color:var(--bug);color:var(--bug);background:var(--bug-light);}
+.status-btn.active-bug{background:var(--bug-light);border-color:var(--bug);color:var(--bug);}
+
+.item-remark{padding:0 12px 10px 40px;display:none;}
+.item.is-bug .item-remark{display:block;}
+.item-remark textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);background:var(--bug-light);border:1px solid #DEC5C5;border-radius:5px;padding:7px 10px;resize:none;min-height:48px;outline:none;line-height:1.5;}
+.item-remark textarea::placeholder{color:#C08080;}
+.item-remark textarea:focus{border-color:var(--bug);}
+
+/* ADD BUTTONS */
+.add-item-btn{width:100%;height:32px;border:1px dashed var(--border);border-radius:8px;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px;}
+.add-item-btn:hover{border-color:var(--edit);color:var(--edit);background:var(--edit-light);}
+.add-section-btn{width:100%;height:36px;border:1px dashed var(--border);border-radius:8px;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;margin-top:.5rem;}
+.add-section-btn:hover{border-color:var(--edit);color:var(--edit);background:var(--edit-light);}
+
+/* NOTES */
+.notes-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:1.5rem;}
+.notes-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px;}
+.notes-block textarea{width:100%;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:transparent;border:none;outline:none;resize:none;min-height:56px;line-height:1.6;}
+.notes-block textarea::placeholder{color:var(--muted);}
+
+/* BOTTOM BAR */
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 2rem;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:100;}
+.bottom-stats{display:flex;align-items:center;gap:16px;}
+.stat{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
+.stat-dot{width:8px;height:8px;border-radius:50%;}
+.stat-n{font-weight:500;color:var(--text);}
+.bottom-actions{display:flex;gap:8px;}
+
+/* MODAL */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(26,22,18,.5);z-index:200;align-items:center;justify-content:center;padding:1rem;}
+.modal-backdrop.open{display:flex;}
+.modal{background:var(--surface);border-radius:12px;width:100%;max-width:520px;border:1px solid var(--border);overflow:hidden;}
+.modal-header{padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-family:'DM Serif Display',serif;font-size:17px;}
+.modal-close{width:28px;height:28px;border-radius:5px;border:1px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--muted);}
+.modal-close:hover{background:var(--bg);}
+.modal-body{padding:16px 20px;}
+.modal-field{margin-bottom:12px;}
+.modal-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:5px;}
+.modal-input{width:100%;height:36px;border:1px solid var(--border);border-radius:6px;padding:0 10px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text);background:var(--bg);outline:none;}
+.modal-input:focus{border-color:var(--accent);}
+.modal-preview{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.7;max-height:200px;overflow-y:auto;white-space:pre-wrap;font-family:monospace;}
+.modal-footer{padding:12px 20px 16px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--border);}
+
+@media(max-width:600px){
+  .header{padding:0 1rem;}
+  .tabs{padding:0 1rem;}
+  .main{padding:1.5rem 1rem 5rem;}
+  .bottom-bar{padding:10px 1rem;}
+  .chrono{font-size:16px;}
+  .header-sub{display:none;}
+  .item-link-input{width:120px;}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo-mark">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="1" y="1" width="6" height="6" fill="white" opacity=".9"/>
+        <rect x="9" y="1" width="6" height="6" fill="white" opacity=".6"/>
+        <rect x="1" y="9" width="6" height="6" fill="white" opacity=".6"/>
+        <rect x="9" y="9" width="6" height="6" fill="white" opacity=".3"/>
+      </svg>
+    </div>
+    <div>
+      <div class="header-title">Carrelage Signature</div>
+      <div class="header-sub" id="header-date"></div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="chrono" id="chrono">00:00</div>
+    <button class="btn" id="chrono-btn" onclick="toggleChrono()">Démarrer</button>
+    <button class="btn edit-mode" id="edit-btn" onclick="toggleEditMode()">✏️ Modifier</button>
+    <button class="btn" onclick="resetAll()">Reset</button>
+  </div>
+</header>
+
+<div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+
+<div class="edit-banner" id="edit-banner">
+  <span>Mode édition actif — les modifications sont sauvegardées automatiquement</span>
+  <span class="edit-banner-hint">Renomme les items, change les liens, ajoute ou supprime des éléments</span>
+</div>
+
+<nav class="tabs">
+  <div class="tab active" onclick="switchTab('daily',this)">Quotidien <span class="tab-count" id="count-daily">0</span></div>
+  <div class="tab" onclick="switchTab('weekly',this)">Hebdomadaire <span class="tab-count" id="count-weekly">0</span></div>
+</nav>
+
+<main class="main">
+  <div class="tab-content active" id="tab-daily"></div>
+  <div class="tab-content" id="tab-weekly"></div>
+  <div class="notes-block">
+    <div class="notes-label">Notes libres</div>
+    <textarea id="notes" placeholder="Observations générales, contexte..."></textarea>
+  </div>
+</main>
+
+<div class="bottom-bar">
+  <div class="bottom-stats">
+    <div class="stat"><div class="stat-dot" style="background:var(--ok)"></div><span class="stat-n" id="stat-ok">0</span> OK</div>
+    <div class="stat"><div class="stat-dot" style="background:var(--bug)"></div><span class="stat-n" id="stat-bug">0</span> bug(s)</div>
+    <div class="stat"><div class="stat-dot" style="background:var(--border)"></div><span class="stat-n" id="stat-rem">0</span> restant(s)</div>
+  </div>
+  <div class="bottom-actions">
+    <button class="btn" onclick="openMailModal()">Envoyer le rapport</button>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal" onclick="closeIfBackdrop(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Envoyer le rapport</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-field">
+        <div class="modal-label">Destinataire</div>
+        <input class="modal-input" id="mail-to" type="email" placeholder="prenom@carrelagesignature.com">
+      </div>
+      <div class="modal-field">
+        <div class="modal-label">Aperçu du rapport</div>
+        <div class="modal-preview" id="mail-preview"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Annuler</button>
+      <button class="btn primary" onclick="sendMail()">Ouvrir dans Mail</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SAVE_KEY = 'cs_checklist_v3';
+const BASE = 'https://carrelagesignature.com';
+const PRODUIT = BASE + '/produit/carrelage-inspiration-carreau-ciment-sylvania-20x20-cm/';
+
+const DEFAULT_DATA = {
+  daily: [
+    { cat:"Page d'accueil", items:[
+      {text:"Sections correctement affichées (bannières, sliders, blocs produits)",link:BASE+'/'},
+      {text:"Liens internes fonctionnels (CTA, catégories)",link:BASE+'/'},
+      {text:"Chargement des images (pixelisation, lenteur)",link:BASE+'/'},
+      {text:"Affichage mobile OK",link:''},
+    ]},
+    { cat:"Fiches produits", items:[
+      {text:"Photos affichées correctement (dimensions, zoom, cache)",link:PRODUIT},
+      {text:"Titre, prix, description et déclinaisons cohérents",link:PRODUIT},
+      {text:"Bouton RoomV disponible et fonctionnel",link:PRODUIT},
+      {text:"Ajout au panier OK (quantité normale)",link:PRODUIT},
+      {text:"Ajout au panier OK (grande quantité : 40–50 boîtes)",link:PRODUIT},
+    ]},
+    { cat:"Panier & tunnel", items:[
+      {text:"Panier latéral s'ouvre et affiche le produit ajouté",link:PRODUIT},
+      {text:"Page panier cohérente avec le panier latéral",link:BASE+'/panier/'},
+      {text:"Ajout / suppression d'articles sur les 2 types de panier",link:BASE+'/panier/'},
+      {text:"Navigation jusqu'à la page paiement sans erreur",link:BASE+'/commande/'},
+    ]},
+    { cat:"Anomalies visuelles", items:[
+      {text:"Aucun bug d'affichage ou élément cassé",link:''},
+      {text:"Affichage mobile correct",link:''},
+    ]},
+  ],
+  weekly: [
+    { cat:"Pages catégories", items:[
+      {text:"Carrelage intérieur — page charge correctement",link:BASE+'/carrelage/'},
+      {text:"Carrelage extérieur — page charge correctement",link:BASE+'/categorie-produit/exterieur/'},
+      {text:"Zellige — page charge correctement",link:BASE+'/effet/zellige/'},
+      {text:"Filtres (prix, couleur, format, dispo) fonctionnels",link:BASE+'/carrelage/'},
+      {text:"Tri (popularité, nouveautés, prix) fonctionnel",link:BASE+'/carrelage/'},
+      {text:"Cohérence des résultats filtrés (filtre noir → pas de rose)",link:BASE+'/carrelage/'},
+    ]},
+    { cat:"Barre de recherche", items:[
+      {text:"Recherche par nom produit → résultats pertinents",link:BASE+'/?s=sylvania'},
+      {text:"Recherche par couleur → résultats pertinents",link:BASE+'/?s=noir'},
+      {text:"Recherche par UGS → résultat correct",link:BASE+'/?s=SYL2020'},
+    ]},
+    { cat:"Livraison & promos", items:[
+      {text:"Frais de livraison corrects — code postal Paris (75)",link:BASE+'/commande/'},
+      {text:"Frais de livraison corrects — code postal province",link:BASE+'/commande/'},
+      {text:"Frais de livraison pour un pays frontalier cohérents",link:BASE+'/commande/'},
+      {text:"Application d'un code promo fonctionnelle",link:BASE+'/panier/'},
+    ]},
+    { cat:"Formulaires & contact", items:[
+      {text:"Formulaire de contact envoyé et email bien reçu",link:BASE+'/service-client/'},
+      {text:"Messages d'erreur affichés (champ obligatoire, etc.)",link:BASE+'/service-client/'},
+    ]},
+    { cat:"Compte client", items:[
+      {text:"Connexion / création de compte fonctionnelle",link:BASE+'/mon-compte/'},
+      {text:"Accès à l'historique de commandes",link:BASE+'/mon-compte/'},
+      {text:"Wishlist fonctionnelle (si existante)",link:BASE+'/mon-compte/'},
+    ]},
+    { cat:"SEO spot check", items:[
+      {text:"Balise title présente et cohérente sur 3 pages clés",link:''},
+      {text:"Meta description présente sur 3 pages clés",link:''},
+      {text:"Pas de double H1 sur les pages catégories",link:BASE+'/carrelage/'},
+    ]},
+  ]
+};
+
+let appData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+let checks = {}, bugs = {}, remarks = {}, notes = '';
+let editMode = false;
+let currentTab = 'daily';
+let chronoSec = 0, chronoRunning = false, chronoInterval = null;
+
+// ── PERSISTENCE ──
+function loadAll() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (saved.data) appData = saved.data;
+    const today = new Date().toDateString();
+    if (saved.date === today) {
+      checks = saved.checks || {};
+      bugs = saved.bugs || {};
+      remarks = saved.remarks || {};
+      notes = saved.notes || '';
+      chronoSec = saved.chrono || 0;
+    }
+  } catch(e) {}
+}
+
+function saveAll() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      date: new Date().toDateString(),
+      data: appData, checks, bugs, remarks, notes,
+      chrono: chronoSec
+    }));
+  } catch(e) {}
+}
+
+// ── KEY ──
+function k(tab, ci, ii) { return tab+'_'+ci+'_'+ii; }
+
+// ── BUILD ──
+function buildTab(tab) {
+  const container = document.getElementById('tab-'+tab);
+  container.innerHTML = '';
+  appData[tab].forEach((section, ci) => {
+    container.appendChild(buildSection(tab, ci, section));
+  });
+  if (editMode) {
+    const addSec = document.createElement('button');
+    addSec.className = 'add-section-btn';
+    addSec.innerHTML = '+ Ajouter une catégorie';
+    addSec.onclick = () => addSection(tab);
+    container.appendChild(addSec);
+  }
+  updateCounts(tab);
+}
+
+function buildSection(tab, ci, section) {
+  const sec = document.createElement('div');
+  sec.className = 'section';
+  sec.id = 'sec-'+tab+'-'+ci;
+
+  const hdr = document.createElement('div');
+  hdr.className = 'section-header';
+
+  if (editMode) {
+    const inp = document.createElement('input');
+    inp.className = 'section-name-input';
+    inp.value = section.cat;
+    inp.onchange = e => { appData[tab][ci].cat = e.target.value; saveAll(); };
+    hdr.appendChild(inp);
+    const line = document.createElement('div'); line.className = 'section-line'; hdr.appendChild(line);
+    const del = document.createElement('button');
+    del.className = 'btn-icon delete'; del.title = 'Supprimer la catégorie';
+    del.innerHTML = '🗑'; del.onclick = () => deleteSection(tab, ci);
+    hdr.appendChild(del);
+  } else {
+    const nm = document.createElement('span'); nm.className = 'section-name'; nm.textContent = section.cat;
+    hdr.appendChild(nm);
+    const line = document.createElement('div'); line.className = 'section-line'; hdr.appendChild(line);
+  }
+  sec.appendChild(hdr);
+
+  section.items.forEach((item, ii) => {
+    sec.appendChild(buildItem(tab, ci, ii, item));
+  });
+
+  if (editMode) {
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-item-btn';
+    addBtn.innerHTML = '+ Ajouter un item';
+    addBtn.onclick = () => addItem(tab, ci);
+    sec.appendChild(addBtn);
+  }
+  return sec;
+}
+
+function buildItem(tab, ci, ii, item) {
+  const K = k(tab, ci, ii);
+  const isOk = checks[K];
+  const isBug = bugs[K];
+
+  const div = document.createElement('div');
+  div.className = 'item' + (isOk?' is-ok':'') + (isBug?' is-bug':'') + (editMode?' edit-mode-item':'');
+  div.id = 'item-'+K;
+
+  if (editMode) {
+    // Edit layout
+    const main = document.createElement('div');
+    main.className = 'item-main';
+
+    const check = document.createElement('div'); check.className = 'item-check'; main.appendChild(check);
+
+    const labelInp = document.createElement('input');
+    labelInp.className = 'item-label-input';
+    labelInp.value = item.text;
+    labelInp.placeholder = 'Nom de l\'item...';
+    labelInp.onchange = e => { appData[tab][ci].items[ii].text = e.target.value; saveAll(); };
+    main.appendChild(labelInp);
+
+    const linkInp = document.createElement('input');
+    linkInp.className = 'item-link-input';
+    linkInp.value = item.link || '';
+    linkInp.placeholder = 'URL (optionnel)';
+    linkInp.onchange = e => { appData[tab][ci].items[ii].link = e.target.value; saveAll(); };
+    main.appendChild(linkInp);
+
+    const del = document.createElement('button');
+    del.className = 'btn-icon delete'; del.title = 'Supprimer';
+    del.innerHTML = '✕'; del.onclick = () => deleteItem(tab, ci, ii);
+    main.appendChild(del);
+
+    div.appendChild(main);
+  } else {
+    // Normal layout
+    const main = document.createElement('div');
+    main.className = 'item-main';
+    main.onclick = () => toggleCheck(K, tab, ci, ii);
+
+    const check = document.createElement('div'); check.className = 'item-check'; main.appendChild(check);
+
+    const label = document.createElement('span');
+    label.className = 'item-label'; label.textContent = item.text;
+    main.appendChild(label);
+
+    if (item.link) {
+      const a = document.createElement('a');
+      a.className = 'item-link'; a.href = item.link; a.target = '_blank';
+      a.textContent = '↗'; a.title = 'Ouvrir';
+      a.onclick = e => e.stopPropagation();
+      main.appendChild(a);
+    }
+
+    const statusWrap = document.createElement('div');
+    statusWrap.className = 'item-status';
+    statusWrap.onclick = e => e.stopPropagation();
+    const bugBtn = document.createElement('button');
+    bugBtn.className = 'status-btn' + (isBug?' active-bug':'');
+    bugBtn.textContent = 'Bug';
+    bugBtn.onclick = () => toggleBug(K, tab, ci, ii);
+    statusWrap.appendChild(bugBtn);
+    main.appendChild(statusWrap);
+
+    div.appendChild(main);
+
+    const remark = document.createElement('div');
+    remark.className = 'item-remark';
+    const ta = document.createElement('textarea');
+    ta.placeholder = 'Décris le bug...';
+    ta.value = remarks[K] || '';
+    ta.onchange = e => { remarks[K] = e.target.value; saveAll(); };
+    remark.appendChild(ta);
+    div.appendChild(remark);
+  }
+
+  return div;
+}
+
+// ── INTERACTIONS ──
+function toggleCheck(K, tab, ci, ii) {
+  if (editMode) return;
+  checks[K] = !checks[K];
+  if (checks[K]) bugs[K] = false;
+  refreshItem(K, tab, ci, ii);
+  updateCounts(tab); updateStats(); saveAll();
+}
+
+function toggleBug(K, tab, ci, ii) {
+  if (editMode) return;
+  bugs[K] = !bugs[K];
+  if (bugs[K]) checks[K] = false;
+  refreshItem(K, tab, ci, ii);
+  updateCounts(tab); updateStats(); saveAll();
+}
+
+function refreshItem(K, tab, ci, ii) {
+  const el = document.getElementById('item-'+K);
+  if (!el) return;
+  el.className = 'item' + (checks[K]?' is-ok':'') + (bugs[K]?' is-bug':'');
+  const btn = el.querySelector('.status-btn');
+  if (btn) btn.className = 'status-btn' + (bugs[K]?' active-bug':'');
+}
+
+// ── EDIT ACTIONS ──
+function toggleEditMode() {
+  editMode = !editMode;
+  const btn = document.getElementById('edit-btn');
+  const banner = document.getElementById('edit-banner');
+  if (editMode) {
+    btn.className = 'btn edit-active';
+    btn.textContent = '✓ Terminer';
+    banner.classList.add('visible');
+  } else {
+    btn.className = 'btn edit-mode';
+    btn.textContent = '✏️ Modifier';
+    banner.classList.remove('visible');
+  }
+  buildTab('daily'); buildTab('weekly');
+}
+
+function addItem(tab, ci) {
+  appData[tab][ci].items.push({ text: 'Nouvel item', link: '' });
+  saveAll();
+  buildTab(tab);
+  // Focus the new input
+  setTimeout(() => {
+    const sec = document.getElementById('sec-'+tab+'-'+ci);
+    if (sec) {
+      const inputs = sec.querySelectorAll('.item-label-input');
+      const last = inputs[inputs.length-1];
+      if (last) { last.focus(); last.select(); }
+    }
+  }, 50);
+}
+
+function deleteItem(tab, ci, ii) {
+  const K = k(tab, ci, ii);
+  appData[tab][ci].items.splice(ii, 1);
+  delete checks[K]; delete bugs[K]; delete remarks[K];
+  saveAll(); buildTab(tab);
+}
+
+function addSection(tab) {
+  appData[tab].push({ cat: 'Nouvelle catégorie', items: [] });
+  saveAll(); buildTab(tab);
+  // Focus new category name
+  setTimeout(() => {
+    const container = document.getElementById('tab-'+tab);
+    const inputs = container.querySelectorAll('.section-name-input');
+    const last = inputs[inputs.length-1];
+    if (last) { last.focus(); last.select(); }
+  }, 50);
+}
+
+function deleteSection(tab, ci) {
+  if (!confirm('Supprimer la catégorie "' + appData[tab][ci].cat + '" et tous ses items ?')) return;
+  appData[tab].splice(ci, 1);
+  saveAll(); buildTab(tab);
+}
+
+// ── COUNTS & STATS ──
+function updateCounts(tab) {
+  let total = 0, done = 0;
+  appData[tab].forEach((sec, ci) => sec.items.forEach((_, ii) => {
+    total++;
+    const K = k(tab, ci, ii);
+    if (checks[K] || bugs[K]) done++;
+  }));
+  const el = document.getElementById('count-'+tab);
+  if (el) el.textContent = done+'/'+total;
+  if (tab === currentTab) {
+    const fill = document.getElementById('progress-fill');
+    if (fill) fill.style.width = total > 0 ? Math.round((done/total)*100)+'%' : '0%';
+  }
+}
+
+function updateStats() {
+  let ok=0, bug=0, rem=0;
+  ['daily','weekly'].forEach(tab => appData[tab].forEach((sec,ci) => sec.items.forEach((_,ii) => {
+    const K = k(tab,ci,ii);
+    if (checks[K]) ok++;
+    else if (bugs[K]) bug++;
+    else rem++;
+  })));
+  document.getElementById('stat-ok').textContent = ok;
+  document.getElementById('stat-bug').textContent = bug;
+  document.getElementById('stat-rem').textContent = rem;
+}
+
+// ── TAB ──
+function switchTab(tab, btn) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  updateCounts(tab);
+}
+
+// ── CHRONO ──
+function toggleChrono() {
+  if (chronoRunning) {
+    clearInterval(chronoInterval); chronoRunning = false;
+    document.getElementById('chrono-btn').textContent = 'Reprendre';
+  } else {
+    chronoInterval = setInterval(() => {
+      chronoSec++;
+      const m=Math.floor(chronoSec/60).toString().padStart(2,'0');
+      const s=(chronoSec%60).toString().padStart(2,'0');
+      document.getElementById('chrono').textContent = m+':'+s;
+      saveAll();
+    }, 1000);
+    chronoRunning = true;
+    document.getElementById('chrono-btn').textContent = 'Pause';
+  }
+}
+
+function resetAll() {
+  if (!confirm('Réinitialiser la progression du jour ?')) return;
+  checks={}; bugs={}; remarks={};
+  chronoSec=0; clearInterval(chronoInterval); chronoRunning=false;
+  document.getElementById('chrono').textContent='00:00';
+  document.getElementById('chrono-btn').textContent='Démarrer';
+  document.getElementById('notes').value=''; notes='';
+  buildTab('daily'); buildTab('weekly'); updateStats(); saveAll();
+}
+
+// ── REPORT ──
+function buildReport() {
+  const today = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const m=Math.floor(chronoSec/60), s=chronoSec%60;
+  const dur = m+'min'+(s>0?' '+s+'s':'');
+  let bugList=[], okList=[], remList=[];
+  ['daily','weekly'].forEach(tab => appData[tab].forEach((sec,ci) => sec.items.forEach((item,ii) => {
+    const K=k(tab,ci,ii);
+    const entry='['+sec.cat+'] '+item.text;
+    if (bugs[K]) bugList.push(entry+(remarks[K]?'\n  → '+remarks[K]:''));
+    else if (checks[K]) okList.push(entry);
+    else remList.push(entry);
+  })));
+  let r='Test quotidien — carrelagesignature.com\n';
+  r+=today+' · '+dur+'\n';
+  r+='─────────────────────────────────\n';
+  r+='✅ '+okList.length+' OK   🔴 '+bugList.length+' bug(s)   ⏳ '+remList.length+' non vérifié(s)\n\n';
+  if (bugList.length) { r+='🔴 BUGS DÉTECTÉS\n'; bugList.forEach(b=>r+='• '+b+'\n'); r+='\n'; }
+  if (remList.length) { r+='⏳ NON VÉRIFIÉS\n'; remList.forEach(b=>r+='• '+b+'\n'); r+='\n'; }
+  if (okList.length) { r+='✅ OK\n'; okList.forEach(b=>r+='• '+b+'\n'); r+='\n'; }
+  const n=document.getElementById('notes').value.trim();
+  if (n) r+='📝 NOTES\n'+n+'\n';
+  return r;
+}
+
+function openMailModal() {
+  document.getElementById('mail-preview').textContent = buildReport();
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function closeIfBackdrop(e) { if(e.target===document.getElementById('modal')) closeModal(); }
+function sendMail() {
+  const to=document.getElementById('mail-to').value.trim();
+  const today=new Date().toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
+  const bugCount=Object.values(bugs).filter(Boolean).length;
+  const subject=encodeURIComponent('Test CS — '+today+(bugCount>0?' 🔴 '+bugCount+' bug(s)':' ✅ OK'));
+  const body=encodeURIComponent(buildReport());
+  window.location.href='mailto:'+to+'?subject='+subject+'&body='+body;
+  closeModal();
+}
+
+// ── INIT ──
+document.getElementById('header-date').textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+loadAll();
+buildTab('daily'); buildTab('weekly'); updateStats();
+document.getElementById('notes').value = notes;
+document.getElementById('notes').addEventListener('input', function() { notes=this.value; saveAll(); });
+const cm=Math.floor(chronoSec/60).toString().padStart(2,'0');
+const cs=(chronoSec%60).toString().padStart(2,'0');
+document.getElementById('chrono').textContent=cm+':'+cs;
+</script>
+</body>
+</html>
