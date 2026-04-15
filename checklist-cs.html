@@ -1403,8 +1403,10 @@ async function sendViaGmail() {
   };
 
   try {
-    // Generate PDF as Blob and trigger download (so it's in the download bar, draggable)
-    const pdfBlob = await html2pdf().set(opt).from(wrapper).output('blob');
+    // Generate PDF as Blob and trigger download (so it's in the download bar, draggable).
+    // IMPORTANT: must go through .toPdf().get('pdf') so the PDF is actually rendered
+    // before asking for the blob — calling .output('blob') directly returns an empty doc.
+    const pdfBlob = await html2pdf().set(opt).from(wrapper).toPdf().get('pdf').then(pdf => pdf.output('blob'));
     document.body.removeChild(wrapper);
 
     const blobUrl = URL.createObjectURL(pdfBlob);
