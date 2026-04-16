@@ -1377,32 +1377,49 @@ async function publishAndMail() {
     const origin = window.location.href.replace(/[^/]*$/, '');
     const reportUrl = origin + REPORTS_PAGE;
 
-    // Plain text mail body — Gmail auto-linkifies URLs
+    // Rich HTML mail body with clickable link — copied to clipboard
     const scope = inc ? 'quotidien et hebdomadaire' : 'quotidien';
     const resultLine = totalBug > 0
       ? 'Résultat : ' + totalBug + ' bug(s) détecté(s), ' + totalOk + ' tests OK.'
       : 'Résultat : tout est OK (' + totalOk + ' tests validés).';
-    const mailBody =
+    const mailHtml =
+      '<p>Bonjour,</p>' +
+      '<p>Le test ' + scope + ' du ' + todayFr + ' a été effectué par ' + author + '.<br>' +
+      resultLine + '</p>' +
+      '<p>\u{1F449} <a href="' + reportUrl + '">Consulter le rapport complet</a></p>' +
+      '<p>Bonne journée,</p>';
+    const mailPlain =
       'Bonjour,\n\n' +
       'Le test ' + scope + ' du ' + todayFr + ' a été effectué par ' + author + '.\n' +
       resultLine + '\n\n' +
-      'Consulter le rapport complet :\n' + reportUrl + '\n\n' +
+      'Consulter le rapport complet : ' + reportUrl + '\n\n' +
       'Bonne journée,';
 
-    // Open Gmail compose with recipient + subject + body pre-filled
+    // Copy rich HTML to clipboard so Cmd+V in Gmail gives a clickable link
+    try {
+      if (navigator.clipboard && window.ClipboardItem) {
+        await navigator.clipboard.write([new ClipboardItem({
+          'text/html': new Blob([mailHtml], { type: 'text/html' }),
+          'text/plain': new Blob([mailPlain], { type: 'text/plain' }),
+        })]);
+      } else {
+        await navigator.clipboard.writeText(mailPlain);
+      }
+    } catch(e) { console.warn('clipboard copy failed', e); }
+
+    // Open Gmail compose with recipient + subject only (body via Cmd+V)
     const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1'
       + '&to=' + encodeURIComponent(to)
-      + '&su=' + encodeURIComponent(subjectPlain)
-      + '&body=' + encodeURIComponent(mailBody);
+      + '&su=' + encodeURIComponent(subjectPlain);
 
     window.open(gmailUrl, '_blank', 'noopener');
 
-    btn.innerHTML = '✓ Rapport publié + mail ouvert';
+    btn.innerHTML = '✓ Publié — Cmd+V dans Gmail';
     setTimeout(() => {
       btn.innerHTML = original;
       btn.disabled = false;
       closeModal();
-    }, 3000);
+    }, 4000);
   } catch (err) {
     console.error('Publish failed:', err);
     btn.innerHTML = original;
