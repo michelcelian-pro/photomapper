@@ -1357,10 +1357,10 @@ function exportExcel() {
         const row = { 'Catégorie': sec.cat, 'Test': item.text, 'Statut': statut, 'Commentaire': commentaire };
         if (inc) row['Type'] = tabLabel;
         rows.push(row);
-        // Sub-items
+        // Sub-items inherit parent status
         if (item.subs && item.subs.length) {
           item.subs.forEach(sub => {
-            const subRow = { 'Catégorie': sec.cat, 'Test': '  ↳ ' + sub.text, 'Statut': '', 'Commentaire': '' };
+            const subRow = { 'Catégorie': sec.cat, 'Test': '  ↳ ' + sub.text, 'Statut': statut, 'Commentaire': '' };
             if (inc) subRow['Type'] = tabLabel;
             rows.push(subRow);
           });
