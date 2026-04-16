@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapports CS — Carrelage Signature</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Serif+Display&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #F5F2ED;
+            --surface: #FDFBF8;
+            --border: #E8E2D9;
+            --accent: #8B6F4E;
+            --text: #1A1612;
+            --muted: #7A7062;
+            --ok: #3A7D5C;
+            --bug: #C0392B;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1.25rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .header h1 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.5rem;
+            color: var(--text);
+            font-weight: 400;
+        }
+
+        .back-link {
+            font-size: 0.875rem;
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+
+        .back-link:hover {
+            opacity: 0.7;
+        }
+
+        /* Main */
+        .main {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+        }
+
+        /* Spinner */
+        .spinner-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6rem 1rem;
+            gap: 1rem;
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner-text {
+            font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        /* Empty / Error states */
+        .state-message {
+            text-align: center;
+            padding: 5rem 1rem;
+        }
+
+        .state-message .icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .state-message h2 {
+            font-family: 'DM Serif Display', serif;
+            font-weight: 400;
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .state-message p {
+            color: var(--muted);
+            font-size: 0.875rem;
+            max-width: 420px;
+            margin: 0 auto;
+            word-break: break-all;
+        }
+
+        .state-message.error h2 {
+            color: var(--bug);
+        }
+
+        /* Grid */
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.25rem;
+        }
+
+        @media (max-width: 640px) {
+            .report-grid {
+                grid-template-columns: 1fr;
+            }
+            .header {
+                padding: 1rem 1.25rem;
+            }
+            .header h1 {
+                font-size: 1.25rem;
+            }
+            .main {
+                padding: 1.25rem 1rem 3rem;
+            }
+        }
+
+        /* Card */
+        .report-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .report-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(26, 22, 18, 0.08);
+        }
+
+        .report-card.active {
+            grid-column: 1 / -1;
+        }
+
+        .card-summary {
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .card-date {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.05rem;
+            font-weight: 400;
+            color: var(--text);
+            text-transform: capitalize;
+        }
+
+        .card-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .card-author {
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        .card-badges {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+        }
+
+        .badge-bug {
+            background: rgba(192, 57, 43, 0.1);
+            color: var(--bug);
+        }
+
+        .badge-ok {
+            background: rgba(58, 125, 92, 0.1);
+            color: var(--ok);
+        }
+
+        .badge-checks {
+            background: rgba(139, 111, 78, 0.1);
+            color: var(--accent);
+        }
+
+        .card-expand-icon {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 0.25rem;
+            transition: transform 0.3s ease;
+        }
+
+        .report-card.active .card-expand-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Accordion content */
+        .card-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+        }
+
+        .card-content-inner {
+            border-top: 1px solid var(--border);
+            padding: 1.5rem;
+            font-size: 0.875rem;
+            line-height: 1.7;
+            color: var(--text);
+        }
+
+        .card-content-inner table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .card-content-inner th,
+        .card-content-inner td {
+            padding: 0.4rem 0.6rem;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+
+        .card-content-inner ul,
+        .card-content-inner ol {
+            padding-left: 1.25rem;
+        }
+
+        .card-content-inner img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <h1>Rapports CS — Carrelage Signature</h1>
+    <a href="checklist-cs.html" class="back-link">&larr; Retour &agrave; la checklist</a>
+</header>
+
+<main class="main" id="app"></main>
+
+<script>
+// ============================================================
+// URL de votre Google Apps Script web app (doGet retourne le JSON)
+// Remplacez par votre URL déployée, ex :
+// https://script.google.com/macros/s/XXXX/exec
+const APPS_SCRIPT_URL = '';
+// ============================================================
+
+const app = document.getElementById('app');
+
+// ---------- French date formatting ----------
+function formatDateFR(dateStr) {
+    try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    } catch {
+        return dateStr;
+    }
+}
+
+// ---------- Render helpers ----------
+function renderSpinner() {
+    app.innerHTML = `
+        <div class="spinner-container">
+            <div class="spinner"></div>
+            <span class="spinner-text">Chargement des rapports&hellip;</span>
+        </div>`;
+}
+
+function renderEmpty() {
+    app.innerHTML = `
+        <div class="state-message">
+            <div class="icon">📋</div>
+            <h2>Aucun rapport pour l'instant</h2>
+            <p>Les rapports apparaîtront ici une fois générés depuis la checklist.</p>
+        </div>`;
+}
+
+function renderError(err) {
+    const urlHint = APPS_SCRIPT_URL
+        ? `<p>URL vérifiée : ${APPS_SCRIPT_URL}</p>`
+        : `<p>Aucune URL configurée. Renseignez la constante <code>APPS_SCRIPT_URL</code> en haut du fichier.</p>`;
+    app.innerHTML = `
+        <div class="state-message error">
+            <div class="icon">⚠️</div>
+            <h2>Impossible de charger les rapports</h2>
+            <p>${err.message || err}</p>
+            ${urlHint}
+        </div>`;
+}
+
+function buildBadges(report) {
+    const bugBadge = report.bugCount > 0
+        ? `<span class="badge badge-bug">🐞 ${report.bugCount} bug${report.bugCount > 1 ? 's' : ''}</span>`
+        : `<span class="badge badge-ok">✓ OK</span>`;
+    const checksBadge = `<span class="badge badge-checks">${report.totalChecks} vérif.</span>`;
+    return bugBadge + checksBadge;
+}
+
+function renderReports(reports) {
+    if (!reports || reports.length === 0) {
+        renderEmpty();
+        return;
+    }
+
+    // Sort most recent first
+    reports.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const grid = document.createElement('div');
+    grid.className = 'report-grid';
+
+    reports.forEach((report) => {
+        const card = document.createElement('div');
+        card.className = 'report-card';
+        card.innerHTML = `
+            <div class="card-summary">
+                <div class="card-date">${formatDateFR(report.date)}</div>
+                <div class="card-meta">
+                    <span class="card-author">${report.author || 'Auteur inconnu'}</span>
+                    <div class="card-badges">${buildBadges(report)}</div>
+                </div>
+                <div class="card-expand-icon">▼</div>
+            </div>
+            <div class="card-content">
+                <div class="card-content-inner">${report.htmlContent || '<em>Aucun contenu détaillé.</em>'}</div>
+            </div>`;
+
+        card.addEventListener('click', () => {
+            const wasActive = card.classList.contains('active');
+            // Close all
+            grid.querySelectorAll('.report-card.active').forEach(c => {
+                c.classList.remove('active');
+                c.querySelector('.card-content').style.maxHeight = null;
+            });
+            if (!wasActive) {
+                card.classList.add('active');
+                const content = card.querySelector('.card-content');
+                content.style.maxHeight = content.scrollHeight + 'px';
+            }
+        });
+
+        grid.appendChild(card);
+    });
+
+    app.innerHTML = '';
+    app.appendChild(grid);
+}
+
+// ---------- Fetch data ----------
+async function loadReports() {
+    if (!APPS_SCRIPT_URL) {
+        renderError({ message: 'La constante APPS_SCRIPT_URL est vide.' });
+        return;
+    }
+
+    renderSpinner();
+
+    try {
+        const res = await fetch(APPS_SCRIPT_URL);
+        if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
+        const data = await res.json();
+        renderReports(data);
+    } catch (err) {
+        renderError(err);
+    }
+}
+
+// ---------- Init ----------
+loadReports();
+</script>
+</body>
+</html>
