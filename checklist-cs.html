@@ -1176,7 +1176,7 @@ function collectReportData(includeWeekly) {
         totalOk++;
         const key = tab + '|' + sec.cat;
         if (!okBySection[key]) okBySection[key] = { tab, cat: sec.cat, items: [] };
-        okBySection[key].items.push(item.text);
+        okBySection[key].items.push({ text: item.text, subs: item.subs || [] });
       } else {
         totalRem++;
       }
@@ -1303,7 +1303,15 @@ function buildReportHTML(includeWeekly) {
       h += '<p style="margin:10px 0 4px;color:#3A7D5C;font-weight:500;font-size:13px;">✓ ' + escHtml(ctx) + '</p>';
       h += '<ul style="margin:0 0 6px 18px;padding:0;color:#1A1612;font-size:12px;line-height:1.6;">';
       group.items.forEach(it => {
-        h += '<li style="margin-bottom:2px;">' + escHtml(it) + '</li>';
+        h += '<li style="margin-bottom:2px;">' + escHtml(it.text);
+        if (it.subs && it.subs.length) {
+          h += '<ul style="margin:2px 0 2px 16px;padding:0;color:#7A7062;font-size:11px;line-height:1.5;">';
+          it.subs.forEach(sub => {
+            h += '<li style="margin-bottom:1px;">↳ ' + escHtml(sub.text) + (sub.link ? ' <a href="' + escHtml(sub.link) + '" style="color:#4A90D9;text-decoration:none;">🔗</a>' : '') + '</li>';
+          });
+          h += '</ul>';
+        }
+        h += '</li>';
       });
       h += '</ul>';
     });
