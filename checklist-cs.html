@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tests CS — Carrelage Signature</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
-<!-- html2pdf removed — reports are now published online via Apps Script -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -284,8 +284,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <input class="modal-input" id="author-name" type="text" placeholder="ex: Célian" value="">
       </div>
       <div class="modal-field">
-        <div class="modal-label">Destinataire du mail</div>
-        <input class="modal-input" id="mail-to" type="email" placeholder="prenom@carrelagesignature.com" list="mail-history">
+        <div class="modal-label">Destinataire(s) du mail <span style="font-weight:400;color:var(--muted);">— sépare par des virgules</span></div>
+        <input class="modal-input" id="mail-to" type="text" placeholder="prenom@cs.com, patron@cs.com" list="mail-history">
         <datalist id="mail-history"></datalist>
         <div id="mail-recents" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;"></div>
       </div>
@@ -306,6 +306,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="modal-footer">
       <button class="btn" onclick="closeModal()">Annuler</button>
       <button class="btn" onclick="copyReport()" id="copy-btn">📋 Copier</button>
+      <button class="btn" onclick="exportExcel()" id="excel-btn">📊 Résumé Excel</button>
       <button class="btn primary" onclick="publishAndMail()" id="publish-btn">🚀 Publier + envoyer</button>
     </div>
   </div>
@@ -1139,10 +1140,15 @@ function loadMailHistory() {
 function saveMailHistory(list) {
   try { localStorage.setItem(MAIL_HISTORY_KEY, JSON.stringify(list.slice(0, 8))); } catch(e) {}
 }
-function rememberMail(addr) {
-  if (!addr) return;
-  let list = loadMailHistory().filter(x => x !== addr);
-  list.unshift(addr);
+function rememberMail(addrStr) {
+  if (!addrStr) return;
+  // Support multiple addresses separated by commas
+  const addrs = addrStr.split(',').map(a => a.trim()).filter(Boolean);
+  let list = loadMailHistory();
+  addrs.forEach(addr => {
+    list = list.filter(x => x !== addr);
+    list.unshift(addr);
+  });
   saveMailHistory(list);
 }
 
@@ -1329,12 +1335,61 @@ function buildReportHTML(includeWeekly) {
   return h;
 }
 
+// Export a simple Excel summary for the boss: Category | Test | Status | Comment
+function exportExcel() {
+  const inc = document.getElementById('include-weekly').checked;
+  const tabs = inc ? ['daily','weekly'] : ['daily'];
+  const rows = [];
+  tabs.forEach(tab => {
+    const tabLabel = tab === 'daily' ? 'Quotidien' : 'Hebdomadaire';
+    appData[tab].forEach((sec, ci) => {
+      sec.items.forEach((item, ii) => {
+        const K = k(tab, ci, ii);
+        let statut = '⏳ Non vérifié';
+        let commentaire = '';
+        if (bugs[K]) {
+          statut = '🔴 Bug';
+          const content = extractBugContent(remarks[K] || '');
+          commentaire = content.text;
+        } else if (checks[K]) {
+          statut = '✅ OK';
+        }
+        const row = { 'Catégorie': sec.cat, 'Test': item.text, 'Statut': statut, 'Commentaire': commentaire };
+        if (inc) row['Type'] = tabLabel;
+        rows.push(row);
+        // Sub-items
+        if (item.subs && item.subs.length) {
+          item.subs.forEach(sub => {
+            const subRow = { 'Catégorie': sec.cat, 'Test': '  ↳ ' + sub.text, 'Statut': '', 'Commentaire': '' };
+            if (inc) subRow['Type'] = tabLabel;
+            rows.push(subRow);
+          });
+        }
+      });
+    });
+  });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  // Auto-size columns
+  const colWidths = Object.keys(rows[0] || {}).map(key => {
+    const maxLen = Math.max(key.length, ...rows.map(r => (r[key] || '').length));
+    return { wch: Math.min(maxLen + 2, 60) };
+  });
+  ws['!cols'] = colWidths;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Rapport');
+  const today = new Date().toISOString().slice(0,10);
+  const bugCount = Object.values(bugs).filter(Boolean).length;
+  XLSX.writeFile(wb, 'resume-CS-' + today + (bugCount > 0 ? '-' + bugCount + 'bugs' : '-ok') + '.xlsx');
+}
+
 // Publish report to Google Sheet via Apps Script, then open Gmail with a link to the report page.
 async function publishAndMail() {
   const author = document.getElementById('author-name').value.trim();
   if (!author) { alert('Entre ton prénom'); return; }
   const to = document.getElementById('mail-to').value.trim();
-  if (!to) { alert('Saisis un destinataire'); return; }
+  if (!to) { alert('Saisis au moins un destinataire'); return; }
   if (!APPS_SCRIPT_URL) { alert('L\'URL Apps Script n\'est pas configurée. Voir SETUP-APPS-SCRIPT.md'); return; }
 
   const btn = document.getElementById('publish-btn');
@@ -1446,7 +1501,15 @@ function renderMailRecents() {
     chip.style.cssText = 'font-family:"DM Sans",sans-serif;font-size:11px;padding:3px 8px;border-radius:99px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer;';
     chip.onmouseenter = () => { chip.style.borderColor = 'var(--accent)'; chip.style.color = 'var(--accent)'; };
     chip.onmouseleave = () => { chip.style.borderColor = 'var(--border)'; chip.style.color = 'var(--muted)'; };
-    chip.onclick = () => { document.getElementById('mail-to').value = addr; };
+    chip.onclick = () => {
+      const input = document.getElementById('mail-to');
+      const current = input.value.trim();
+      if (!current) { input.value = addr; }
+      else {
+        const existing = current.split(',').map(a => a.trim());
+        if (!existing.includes(addr)) input.value = current + ', ' + addr;
+      }
+    };
     wrap.appendChild(chip);
   });
 }
