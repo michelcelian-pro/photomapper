@@ -1409,6 +1409,7 @@ async function publishAndMail() {
   const subjectPlain = tag + ' — ' + todayFr + (totalBug > 0 ? ' \u{1F534} ' + totalBug + ' bug(s)' : ' \u2705 OK');
 
   const payload = {
+    id: todayISO,
     date: todayISO,
     author: author,
     bugCount: totalBug,
