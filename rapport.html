@@ -339,11 +339,6 @@ function buildCardActions(card, report) {
     const actions = card.querySelector('.card-actions');
     actions.innerHTML = '';
 
-    const editBtn = document.createElement('button');
-    editBtn.className = 'btn';
-    editBtn.textContent = '✏️ Modifier';
-    editBtn.onclick = (e) => { e.stopPropagation(); enterEditMode(card, report); };
-
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'btn danger';
     deleteBtn.textContent = '🗑️ Supprimer';
@@ -365,7 +360,6 @@ function buildCardActions(card, report) {
         }
     };
 
-    actions.appendChild(editBtn);
     actions.appendChild(deleteBtn);
 }
 
