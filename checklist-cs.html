@@ -1290,20 +1290,12 @@ function buildReportHTML(includeWeekly) {
   }
 
   const notesRaw = document.getElementById('notes').innerHTML;
-  const notesContent = extractBugContent(notesRaw); // {text, images}
-  if (notesContent.text || notesContent.images.length) {
+  // Keep original HTML so images stay inline with their bullets / text
+  const notesHasContent = (notesRaw && notesRaw.replace(/<[^>]+>/g,'').trim().length > 0) || /<img/i.test(notesRaw);
+  if (notesHasContent) {
     h += '<p style="margin-top:16px;"><strong>─ Notes ─</strong></p>';
-    if (notesContent.text) {
-      h += '<p style="white-space:pre-wrap;">' + escHtml(notesContent.text) + '</p>';
-    }
-    // Inline captures from notes right after the notes text
-    if (notesContent.images.length) {
-      h += '<div style="margin:6px 0 10px;">';
-      notesContent.images.forEach(src => {
-        h += '<img src="' + src + '" alt="capture notes" style="max-width:100%;max-height:400px;border:1px solid #E8E2D9;border-radius:6px;display:block;margin:6px 0;">';
-      });
-      h += '</div>';
-    }
+    // Inject a styled wrapper so images render nicely without blowing layout
+    h += '<div style="line-height:1.6;">' + notesRaw.replace(/<img /g, '<img style="max-width:100%;max-height:400px;border:1px solid #E8E2D9;border-radius:6px;display:block;margin:6px 0;" ') + '</div>';
   }
 
   // Detailed OK section (PDF version includes this)
