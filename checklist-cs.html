@@ -284,6 +284,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <input class="modal-input" id="author-name" type="text" placeholder="ex: Célian" value="">
       </div>
       <div class="modal-field">
+        <div class="modal-label">Ton Gmail <span style="font-weight:400;color:var(--muted);">— le mail partira depuis ce compte</span></div>
+        <input class="modal-input" id="author-email" type="email" placeholder="toi@gmail.com" value="">
+      </div>
+      <div class="modal-field">
         <div class="modal-label">Destinataire(s) du mail <span style="font-weight:400;color:var(--muted);">— sépare par des virgules</span></div>
         <input class="modal-input" id="mail-to" type="text" placeholder="prenom@cs.com, patron@cs.com" list="mail-history">
         <datalist id="mail-history"></datalist>
@@ -1438,6 +1442,7 @@ function exportExcel() {
 async function publishAndMail() {
   const author = document.getElementById('author-name').value.trim();
   if (!author) { alert('Entre ton prénom'); return; }
+  const authorEmail = document.getElementById('author-email').value.trim();
   const to = document.getElementById('mail-to').value.trim();
   if (!to) { alert('Saisis au moins un destinataire'); return; }
   if (!APPS_SCRIPT_URL) { alert('L\'URL Apps Script n\'est pas configurée. Voir SETUP-APPS-SCRIPT.md'); return; }
@@ -1447,8 +1452,9 @@ async function publishAndMail() {
   btn.disabled = true;
   btn.innerHTML = '⏳ Publication...';
 
-  // Save author name for next time
+  // Save author name + email for next time
   localStorage.setItem('cs_author', author);
+  if (authorEmail) localStorage.setItem('cs_author_email', authorEmail);
 
   const inc = document.getElementById('include-weekly').checked;
   const htmlContent = buildReportHTML(inc);
@@ -1514,7 +1520,9 @@ async function publishAndMail() {
     } catch(e) { console.warn('clipboard copy failed', e); }
 
     // Open Gmail compose with recipient + subject only (body via Cmd+V)
-    const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1'
+    // authuser ouvre Gmail sur le compte spécifié au lieu du compte par défaut
+    const authParam = authorEmail ? '&authuser=' + encodeURIComponent(authorEmail) : '';
+    const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1' + authParam
       + '&to=' + encodeURIComponent(to)
       + '&su=' + encodeURIComponent(subjectPlain);
 
@@ -1570,6 +1578,8 @@ function openMailModal() {
   // Restore saved author name
   const savedAuthor = localStorage.getItem('cs_author');
   if (savedAuthor) document.getElementById('author-name').value = savedAuthor;
+  const savedEmail = localStorage.getItem('cs_author_email');
+  if (savedEmail) document.getElementById('author-email').value = savedEmail;
   renderMailRecents();
   refreshMailPreview();
   document.getElementById('modal').classList.add('open');
