@@ -225,7 +225,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
     <div>
       <div class="header-title">Carrelage Signature</div>
-      <div class="header-sub" id="header-date"></div>
+      <div class="header-sub"><span id="header-date"></span> <span id="sync-status" style="font-size:10px;margin-left:8px;color:var(--muted);"></span></div>
     </div>
   </div>
   <div class="header-right">
@@ -412,6 +412,64 @@ function saveAll() {
       chrono: chronoSec, collapsed
     }));
   } catch(e) {}
+  // Sync shared checklist structure to server (debounced)
+  syncChecklistToServer();
+}
+
+// ── SHARED CHECKLIST SYNC ──
+let _syncTimeout = null;
+let _lastSyncedStructure = null;
+function syncChecklistToServer() {
+  if (!APPS_SCRIPT_URL) return;
+  clearTimeout(_syncTimeout);
+  _syncTimeout = setTimeout(async () => {
+    const json = JSON.stringify(appData);
+    if (json === _lastSyncedStructure) return;
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'saveChecklist', checklist: appData }),
+      });
+      _lastSyncedStructure = json;
+      updateSyncStatus('ok');
+    } catch (e) {
+      console.warn('Sync failed', e);
+      updateSyncStatus('offline');
+    }
+  }, 1500);
+}
+
+async function loadSharedChecklist() {
+  if (!APPS_SCRIPT_URL) return null;
+  try {
+    updateSyncStatus('loading');
+    const resp = await fetch(APPS_SCRIPT_URL + '?action=getChecklist');
+    const data = await resp.json();
+    if (data && data.checklist) {
+      _lastSyncedStructure = JSON.stringify(data.checklist);
+      updateSyncStatus('ok', data.lastUpdated);
+      return data.checklist;
+    }
+    updateSyncStatus('ok');
+    return null;
+  } catch (e) {
+    console.warn('Load shared checklist failed', e);
+    updateSyncStatus('offline');
+    return null;
+  }
+}
+
+function updateSyncStatus(state, lastUpdated) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  if (state === 'loading') { el.textContent = '⏳ Sync...'; el.style.color = 'var(--muted)'; }
+  else if (state === 'offline') { el.textContent = '⚠ Hors ligne'; el.style.color = '#C0392B'; }
+  else if (state === 'ok') {
+    const when = lastUpdated ? ' — MAJ ' + new Date(lastUpdated).toLocaleString('fr-FR',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+    el.textContent = '✓ Partagée' + when;
+    el.style.color = 'var(--ok)';
+  }
 }
 
 // ── KEY ──
@@ -1566,11 +1624,19 @@ async function copyReport() {
 
 // ── INIT ──
 document.getElementById('header-date').textContent = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
-loadAll();
-buildTab('daily'); buildTab('weekly'); updateStats();
-const notesEl = document.getElementById('notes');
-notesEl.innerHTML = notes;
-attachRichEditor(notesEl, v => { notes = v; saveAll(); });
+
+// Async init: load shared checklist first, then render
+(async () => {
+  loadAll(); // local state first (user checks, bugs, notes)
+  const shared = await loadSharedChecklist();
+  if (shared && Array.isArray(shared.daily)) {
+    appData = shared;
+  }
+  buildTab('daily'); buildTab('weekly'); updateStats();
+  const notesEl = document.getElementById('notes');
+  notesEl.innerHTML = notes;
+  attachRichEditor(notesEl, v => { notes = v; saveAll(); });
+})();
 document.getElementById('include-weekly').addEventListener('change', refreshMailPreview);
 const cm=Math.floor(chronoSec/60).toString().padStart(2,'0');
 const cs=(chronoSec%60).toString().padStart(2,'0');
