@@ -232,6 +232,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="chrono" id="chrono">00:00</div>
     <button class="btn" id="chrono-btn" onclick="toggleChrono()">Démarrer</button>
     <button class="btn" id="collapse-btn" onclick="toggleCollapseAll()" title="Plier / déplier toutes les catégories">▶ Tout plier</button>
+    <button class="btn" onclick="openGuide()">📖 Guide</button>
     <a href="rapport.html" class="btn" style="text-decoration:none;">📊 Rapports</a>
     <button class="btn edit-mode" id="edit-btn" onclick="toggleEditMode()">✏️ Modifier</button>
     <button class="btn" onclick="resetAll()">Reset</button>
@@ -312,6 +313,167 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <button class="btn" onclick="copyReport()" id="copy-btn">📋 Copier</button>
       <button class="btn" onclick="exportExcel()" id="excel-btn">📊 Résumé Excel</button>
       <button class="btn primary" onclick="publishAndMail()" id="publish-btn">🚀 Publier + envoyer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Guide utilisateur -->
+<div class="modal-backdrop" id="guide-modal" onclick="closeIfGuideBackdrop(event)">
+  <div class="modal" style="max-width:760px;">
+    <div class="modal-header">
+      <span class="modal-title">📖 Guide d'utilisation</span>
+      <button class="modal-close" onclick="closeGuide()">✕</button>
+    </div>
+    <div class="modal-body" id="guide-body" style="max-height:75vh;overflow-y:auto;">
+      <div style="font-size:13px;line-height:1.7;color:var(--text);">
+
+        <p style="color:var(--muted);margin-bottom:20px;">Ce guide explique comment faire le test quotidien du site carrelagesignature.com et envoyer le rapport à l'équipe. Temps de lecture : <strong>5 minutes</strong>.</p>
+
+        <div style="background:var(--bg);border-left:3px solid var(--accent);padding:10px 14px;border-radius:6px;margin-bottom:20px;">
+          <strong>Sommaire</strong><br>
+          1. À quoi sert cet outil ?<br>
+          2. Faire le test quotidien<br>
+          3. Marquer un test OK ou Bug<br>
+          4. Documenter un bug (commentaire + capture)<br>
+          5. Les notes libres<br>
+          6. Les sous-catégories<br>
+          7. Publier le rapport &amp; envoyer le mail à l'équipe<br>
+          8. Envoyer le résumé Excel à la direction<br>
+          9. Consulter les rapports des jours précédents<br>
+          10. Problèmes courants
+        </div>
+
+        <h3 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin:24px 0 8px;color:var(--accent);">1. À quoi sert cet outil ?</h3>
+        <p>Chaque jour, une personne de l'équipe vérifie que carrelagesignature.com fonctionne correctement : pages principales, produits, panier, tunnel de commande, recherche…</p>
+        <p>Cette application sert à :</p>
+        <ul style="margin:6px 0 12px 20px;">
+          <li>Suivre tous les points à vérifier, étape par étape ;</li>
+          <li>Signaler un bug avec une description et une capture d'écran ;</li>
+          <li>Envoyer un rapport complet à l'équipe (mail) ;</li>
+          <li>Envoyer un résumé Excel à la direction (Laurent &amp; Pascal).</li>
+        </ul>
+
+        <h3 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin:24px 0 8px;color:var(--accent);">2. Faire le test quotidien</h3>
+        <ol style="margin:6px 0 12px 20px;">
+          <li>Ouvre l'app (bookmark ou <a href="https://michelcelian-pro.github.io/photomapper/checklist-cs.html" target="_blank" style="color:var(--accent);">lien</a>).</li>
+          <li>Clique sur <strong>Démarrer</strong> en haut à droite pour lancer le chrono (facultatif).</li>
+          <li>Pour chaque ligne, clique sur le lien bleu si présent, vérifie la page, puis coche <strong>OK</strong> ou <strong>Bug</strong> (voir section 3).</li>
+          <li>Les catégories peuvent être pliées/dépliées (flèche à gauche). Utilise <strong>▶ Tout plier</strong> pour une vue compacte.</li>
+          <li>Une barre de progression en haut indique combien d'items tu as déjà vérifiés.</li>
+        </ol>
+
+        <h3 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin:24px 0 8px;color:var(--accent);">3. Marquer un test OK ou Bug</h3>
+        <p>Pour chaque ligne :</p>
+        <ul style="margin:6px 0 12px 20px;">
+          <li><strong>Bouton OK</strong> (vert) — le point fonctionne.</li>
+          <li><strong>Bouton Bug</strong> (rouge) — il y a un problème. Une zone de commentaire s'ouvre (voir section 4).</li>
+          <li>Si tu n'as pas pu vérifier un point, laisse-le sans cocher. Il apparaîtra comme "non vérifié" dans le rapport.</li>
+          <li>Tu peux re-cliquer pour désactiver un statut.</li>
+        </ul>
+
+        <h3 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin:24px 0 8px;color:var(--accent);">4. Documenter un bug (commentaire + capture)</h3>
+        <p>Quand tu cliques <strong>Bug</strong>, une zone de commentaire apparaît sous la ligne.</p>
+        <ul style="margin:6px 0 12px 20px;">
+          <li><strong>Écris la description</strong> du problème en une phrase claire et professionnelle. C'est ce que ton patron va lire dans le rapport.</li>
+          <li><strong>Ajoute une capture d'écran</strong> de 3 façons au choix :
+            <ul style="margin:4px 0 4px 18px;">
+              <li>Fais un screenshot (Cmd+Shift+4 sur Mac), puis <strong>Cmd+V</strong> dans la zone de commentaire.</li>
+              <li>Glisse-dépose un fichier image depuis ton bureau.</li>
+              <li>Clique dans la zone et sélectionne un fichier.</li>
+            </ul>
+          </li>
+          <li>L'image s'affiche directement sous ton texte. Tu peux en ajouter plusieurs.</li>
+          <li>Les captures sont <strong>compressées automatiquement</strong> pour rester légères.</li>
+        </ul>
+        <p style="background:#FFF9E6;border-left:3px solid #D4A657;padding:8px 12px;border-radius:6px;margin:8px 0;"><strong>💡 Conseil</strong> : écris la description comme si tu parlais à ton patron. Pas de "bug" ou "KO" — plutôt "le bouton ne fonctionne pas sur mobile" ou "le prix affiché est incorrect sur la fiche produit".</p>
+
+        <h3 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin:24px 0 8px;color:var(--accent);">5. Les notes libres</h3>
+        <p>En bas de la checklist, la zone <strong>Notes libres</strong> sert à tout ce qui ne rentre pas dans un point précis :</p>
+        <ul style="margin:6px 0 12px 20px;">
+          <li>Idées d'amélioration remontées par un client ;</li>
+          <li>Observations générales sur le site ;</li>
+          <li>Remarques d'un collègue (ex : Pascal propose tel changement).</li>
+        </ul>
+        <p>Tu peux y coller des captures d'écran comme dans les commentaires de bug.</p>
+
+        <h3 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin:24px 0 8px;color:var(--accent);">6. Les sous-catégories</h3>
+        <p>Certains tests ont des sous-catégories (par exemple "Vérifier les produits en stock" a une liste de références à contrôler). Elles apparaissent avec une flèche <strong>↳</strong>.</p>
+        <ul style="margin:6px 0 12px 20px;">
+          <li>Tu coches <strong>OK ou Bug au niveau du test principal</strong> (pas au niveau des sous-éléments).</li>
+          <li>Si tu trouves un problème sur UNE seule sous-catégorie, coche Bug sur le test principal et précise dans le commentaire quel élément pose problème.</li>
+          <li>Dans le rapport final, les sous-catégories sont automatiquement listées sous leur test parent.</li>
+        </ul>
+
+        <h3 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin:24px 0 8px;color:var(--accent);">7. Publier le rapport &amp; envoyer le mail à l'équipe</h3>
+        <p>Une fois le test terminé, clique sur <strong>Envoyer le rapport</strong> en bas. Une fenêtre s'ouvre.</p>
+        <ol style="margin:6px 0 12px 20px;">
+          <li><strong>Ton prénom</strong> — apparaîtra dans le rapport ("test effectué par X").</li>
+          <li><strong>Ton Gmail</strong> — le mail s'ouvrira depuis ce compte. Important si plusieurs comptes Gmail sont connectés sur le navigateur.</li>
+          <li><strong>Destinataire(s)</strong> — un ou plusieurs mails séparés par des virgules. Les contacts récents apparaissent en puces cliquables.</li>
+          <li>(Optionnel) Coche <strong>Inclure aussi le test hebdomadaire</strong> si tu as rempli les deux onglets.</li>
+          <li>Clique <strong>🚀 Publier + envoyer</strong>.</li>
+        </ol>
+        <p>Ce qui se passe ensuite :</p>
+        <ul style="margin:6px 0 12px 20px;">
+          <li>Le rapport est <strong>sauvegardé en ligne</strong> (visible par tout le monde sur la page "Rapports").</li>
+          <li>Gmail s'ouvre dans un nouvel onglet avec destinataire + objet remplis.</li>
+          <li>Dans le corps du mail, <strong>colle avec Cmd+V</strong> — le rapport complet (texte + captures + lien cliquable) se met en place.</li>
+          <li>Clique <strong>Envoyer</strong> dans Gmail.</li>
+        </ul>
+
+        <h3 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin:24px 0 8px;color:var(--accent);">8. Envoyer le résumé Excel à la direction</h3>
+        <p>Pour envoyer une version courte à Laurent et Pascal, utilise le bouton <strong>📊 Résumé Excel</strong> dans la même fenêtre d'envoi.</p>
+        <ol style="margin:6px 0 12px 20px;">
+          <li>Clique sur <strong>📊 Résumé Excel</strong>.</li>
+          <li>Un fichier <code>resume-CS-...xlsx</code> se télécharge (visible dans la barre de téléchargement).</li>
+          <li>Gmail s'ouvre automatiquement avec :
+            <ul style="margin:4px 0 4px 18px;">
+              <li>Destinataires : Laurent + Pascal ;</li>
+              <li>Objet : "test quotidien du [jour]" ;</li>
+              <li>Corps : message court.</li>
+            </ul>
+          </li>
+          <li><strong>Glisse le fichier Excel</strong> depuis la barre de téléchargement vers la fenêtre Gmail → il se met en pièce jointe.</li>
+          <li>Clique <strong>Envoyer</strong>.</li>
+        </ol>
+        <p>Le fichier Excel contient un tableau simple : catégorie, test, statut (OK / Bug / Non vérifié), commentaire.</p>
+
+        <h3 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin:24px 0 8px;color:var(--accent);">9. Consulter les rapports des jours précédents</h3>
+        <p>Bouton <strong>📊 Rapports</strong> en haut à droite → ouvre la page des rapports.</p>
+        <ul style="margin:6px 0 12px 20px;">
+          <li>Toutes les cartes sont classées du plus récent au plus ancien.</li>
+          <li>Clique sur une carte pour voir le rapport complet.</li>
+          <li>Le bouton <strong>🗑️ Supprimer</strong> permet de supprimer un rapport (demande confirmation).</li>
+          <li>Un seul rapport par jour : si tu republies, l'ancien est écrasé.</li>
+        </ul>
+
+        <h3 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:18px;margin:24px 0 8px;color:var(--accent);">10. Problèmes courants</h3>
+
+        <p><strong>La checklist affiche une ancienne version.</strong><br>
+        Rafraîchis la page avec <strong>Cmd+Shift+R</strong> (force la mise à jour). La checklist est partagée automatiquement — tu dois voir "✓ Partagée" dans le header.</p>
+
+        <p style="margin-top:10px;"><strong>Gmail s'ouvre sur le mauvais compte.</strong><br>
+        Vérifie que tu as bien rempli "Ton Gmail" dans la fenêtre d'envoi. Assure-toi d'être connecté à ce compte dans le navigateur.</p>
+
+        <p style="margin-top:10px;"><strong>Le rapport n'est pas publié / erreur "failed to fetch".</strong><br>
+        Vérifie ta connexion internet. Réessaie après quelques secondes. Si ça persiste, préviens Célian.</p>
+
+        <p style="margin-top:10px;"><strong>J'ai oublié de cocher un test.</strong><br>
+        Pas de souci : un test non coché apparaît comme "non vérifié" dans le rapport. Rien n'est perdu.</p>
+
+        <p style="margin-top:10px;"><strong>Je veux modifier la checklist (ajouter un test, changer un lien).</strong><br>
+        Clique sur <strong>✏️ Modifier</strong> en haut à droite. Les modifs sont automatiquement partagées avec toute l'équipe.</p>
+
+        <p style="margin-top:10px;"><strong>J'ai une question qui n'est pas dans ce guide.</strong><br>
+        Demande à Célian.</p>
+
+        <div style="text-align:center;margin-top:30px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12px;">
+          Fin du guide. Bon test ! 🎯
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn primary" onclick="closeGuide()">J'ai compris, fermer</button>
     </div>
   </div>
 </div>
@@ -1610,6 +1772,9 @@ function openMailModal() {
 }
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
 function closeIfBackdrop(e) { if(e.target===document.getElementById('modal')) closeModal(); }
+function openGuide() { document.getElementById('guide-modal').classList.add('open'); document.getElementById('guide-body').scrollTop = 0; }
+function closeGuide() { document.getElementById('guide-modal').classList.remove('open'); }
+function closeIfGuideBackdrop(e) { if(e.target===document.getElementById('guide-modal')) closeGuide(); }
 async function copyReport() {
   const inc = document.getElementById('include-weekly').checked;
   const text = buildReport(inc);
