@@ -1435,7 +1435,31 @@ function exportExcel() {
   XLSX.utils.book_append_sheet(wb, ws, 'Rapport');
   const today = new Date().toISOString().slice(0,10);
   const bugCount = Object.values(bugs).filter(Boolean).length;
-  XLSX.writeFile(wb, 'resume-CS-' + today + (bugCount > 0 ? '-' + bugCount + 'bugs' : '-ok') + '.xlsx');
+  const filename = 'resume-CS-' + today + (bugCount > 0 ? '-' + bugCount + 'bugs' : '-ok') + '.xlsx';
+  XLSX.writeFile(wb, filename);
+
+  // Ouvrir Gmail pré-rempli pour le patron (destinataires par défaut)
+  const author = (localStorage.getItem('cs_author') || '').trim();
+  const authorEmail = (localStorage.getItem('cs_author_email') || '').trim();
+  const dayLabel = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  const dayYear = new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const inc2 = document.getElementById('include-weekly').checked;
+  const scope = inc2 ? 'quotidien et hebdomadaire' : 'quotidien';
+  const subject = 'test ' + scope + ' du ' + dayLabel;
+  const body =
+    'Bonjour,\n\n' +
+    'Voici le résumé du test ' + scope + ' du ' + dayYear + ' sur carrelage signature en pièce jointe.\n\n' +
+    'Cordialement,\n' +
+    (author || '');
+  const defaultTo = 'laurentguigues@bati-orient-import.com,pascalcaputo@bati-orient-import.com';
+  const authParam = authorEmail ? '&authuser=' + encodeURIComponent(authorEmail) : '';
+  const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1' + authParam
+    + '&to=' + encodeURIComponent(defaultTo)
+    + '&su=' + encodeURIComponent(subject)
+    + '&body=' + encodeURIComponent(body);
+
+  // Petit délai pour laisser le téléchargement démarrer avant d'ouvrir l'onglet Gmail
+  setTimeout(() => window.open(gmailUrl, '_blank', 'noopener'), 400);
 }
 
 // Publish report to Google Sheet via Apps Script, then open Gmail with a link to the report page.
