@@ -1,0 +1,237 @@
+/* =====================================================================
+   STAR KEBAB — LE THOR · feuille de style maison
+   Design : éditorial + néo-brutaliste chaleureux
+   Les couleurs thématiques passent par des variables CSS pour permettre
+   le mode jour / nuit. Les accents de marque (paprika, safran, pistache)
+   restent constants dans les deux thèmes.
+   ===================================================================== */
+
+/* ---- Variables de thème -------------------------------------------- */
+:root {
+  --bg:        #F5EFE6;   /* crème / papier            */
+  --bg-soft:   #ECE2D2;   /* papier un peu plus dense  */
+  --ink:       #1A1614;   /* charbon profond           */
+  --ink-soft:  #5A5048;   /* texte secondaire          */
+  --line:      #1A1614;   /* bordures nettes           */
+  --card:      #FBF8F1;   /* surface de carte          */
+  --shadow:    #1A1614;   /* couleur d'ombre brutale   */
+
+  /* accents de marque (constants) */
+  --paprika:   #D64218;
+  --safran:    #F0A93B;
+  --pistache:  #7E8A5A;
+}
+
+[data-theme="dark"] {
+  --bg:        #131010;
+  --bg-soft:   #1E1816;
+  --ink:       #F5EFE6;
+  --ink-soft:  #B9AC9C;
+  --line:      #F5EFE6;
+  --card:      #1E1816;
+  --shadow:    #000000;
+}
+
+/* ---- Base ----------------------------------------------------------- */
+* { -webkit-tap-highlight-color: transparent; }
+
+html { scroll-behavior: smooth; }
+
+html, body {
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', system-ui, sans-serif;
+  transition: background-color .45s ease, color .45s ease;
+}
+
+body { overflow-x: hidden; }
+
+::selection { background: var(--paprika); color: #fff; }
+
+h1, h2, h3, h4, .font-display {
+  font-family: 'Fraunces', Georgia, serif;
+  font-optical-sizing: auto;
+}
+
+.font-mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+/* Liens d'ancrage : laisser de l'air sous le header sticky */
+[id] { scroll-margin-top: 6rem; }
+
+/* ---- Pleine largeur (full-bleed) ----------------------------------- */
+.full-bleed {
+  width: 100vw;
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+/* ---- Ombres brutalistes (en complément de Tailwind) ---------------- */
+.shadow-brutal    { box-shadow: 6px 6px 0 0 var(--shadow); }
+.shadow-brutal-sm { box-shadow: 4px 4px 0 0 var(--shadow); }
+.shadow-brutal-lg { box-shadow: 12px 12px 0 0 var(--shadow); }
+
+/* ---- Pastille de statut ouvert / fermé ----------------------------- */
+.status-dot {
+  width: .6rem; height: .6rem;
+  border-radius: 9999px;
+  flex: none;
+  background: var(--ink-soft);
+  position: relative;
+}
+.status-dot.is-open  { background: #2FAE5E; box-shadow: 0 0 0 0 rgba(47,174,94,.6); animation: pulse 2.4s infinite; }
+.status-dot.is-closed{ background: var(--paprika); }
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(47,174,94,.55); }
+  70%  { box-shadow: 0 0 0 .55rem rgba(47,174,94,0); }
+  100% { box-shadow: 0 0 0 0 rgba(47,174,94,0); }
+}
+
+/* ---- Reveal au scroll ---------------------------------------------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1);
+  will-change: opacity, transform;
+}
+.reveal.is-visible { opacity: 1; transform: none; }
+.reveal[data-delay="1"] { transition-delay: .09s; }
+.reveal[data-delay="2"] { transition-delay: .18s; }
+.reveal[data-delay="3"] { transition-delay: .27s; }
+.reveal[data-delay="4"] { transition-delay: .36s; }
+
+/* ---- Curseur custom (desktop uniquement) --------------------------- */
+.cursor-dot {
+  position: fixed; top: 0; left: 0;
+  width: 12px; height: 12px;
+  border-radius: 9999px;
+  background: var(--paprika);
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  mix-blend-mode: difference;
+  transition: width .22s ease, height .22s ease, background-color .22s ease, opacity .25s ease;
+}
+.cursor-dot--big { width: 56px; height: 56px; background: var(--safran); }
+@media (hover: none), (pointer: coarse) { .cursor-dot { display: none !important; } }
+
+/* ---- Marquee défilant ---------------------------------------------- */
+.marquee { display: flex; overflow: hidden; white-space: nowrap; }
+.marquee__track {
+  display: flex; flex: 0 0 auto;
+  animation: marquee 32s linear infinite;
+}
+.marquee:hover .marquee__track { animation-play-state: paused; }
+.marquee__group { display: flex; flex: 0 0 auto; }
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ---- Image : tuile de repli si la photo ne charge pas -------------- */
+.img-fallback {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 1.5rem;
+  background: linear-gradient(135deg, var(--paprika) 0%, var(--safran) 100%);
+  color: #1A1614;
+}
+.img-fallback span {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: clamp(1.1rem, 2.4vw, 1.8rem);
+  line-height: 1.05;
+  letter-spacing: -.01em;
+  max-width: 16ch;
+}
+.img-fallback::before {
+  content: ""; position: absolute; inset: 0;
+  background-image: radial-gradient(rgba(26,22,20,.16) 1px, transparent 1px);
+  background-size: 11px 11px;
+  opacity: .5;
+}
+
+/* ---- Footer ticket de caisse --------------------------------------- */
+.receipt-line {
+  display: flex; align-items: baseline; gap: .5rem;
+}
+.receipt-line .dots {
+  flex: 1; border-bottom: 1px dotted currentColor;
+  transform: translateY(-.18em); opacity: .4;
+}
+.dashed-y { border-top: 2px dashed currentColor; border-bottom: 2px dashed currentColor; }
+.barcode {
+  height: 44px; width: 100%;
+  background-image: repeating-linear-gradient(90deg,
+    currentColor 0 2px, transparent 2px 4px,
+    currentColor 4px 7px, transparent 7px 9px,
+    currentColor 9px 10px, transparent 10px 13px,
+    currentColor 13px 16px, transparent 16px 17px);
+}
+
+/* ---- Navigation mobile --------------------------------------------- */
+[data-nav] { transition: transform .35s ease, opacity .35s ease; }
+@media (max-width: 767px) {
+  [data-nav] {
+    position: fixed; inset: 0 0 0 auto;
+    width: min(82vw, 360px);
+    transform: translateX(105%);
+    background: var(--bg);
+    border-left: 3px solid var(--line);
+    z-index: 40; /* sous le header (z-50) pour garder le burger cliquable */
+    flex-direction: column;
+    padding: 5rem 1.75rem 2rem;
+    overflow-y: auto;
+  }
+  [data-nav].is-open { transform: translateX(0); }
+  body.nav-open { overflow: hidden; }
+  body.nav-open [data-mobile-cta] { display: none; } /* évite le chevauchement du tiroir */
+}
+
+/* Voile derrière le tiroir mobile */
+[data-nav-backdrop] {
+  opacity: 0; visibility: hidden;
+  transition: opacity .3s ease, visibility .3s;
+}
+[data-nav-backdrop].is-shown { opacity: 1; visibility: visible; }
+
+/* ---- CTA sticky (flottant desktop) --------------------------------- */
+[data-sticky-cta] {
+  opacity: 0; visibility: hidden;
+  transform: translateY(14px);
+  transition: opacity .35s ease, transform .35s ease, visibility .35s;
+}
+[data-sticky-cta].is-shown { opacity: 1; visibility: visible; transform: none; }
+
+/* ---- Easter egg / toast inactivité --------------------------------- */
+[data-egg] {
+  opacity: 0; visibility: hidden;
+  transform: translateY(20px) scale(.98);
+  transition: opacity .4s ease, transform .4s ease, visibility .4s;
+}
+[data-egg].is-shown { opacity: 1; visibility: visible; transform: none; }
+
+/* ---- Petits utilitaires -------------------------------------------- */
+.text-balance { text-wrap: balance; }
+.text-pretty { text-wrap: pretty; }
+.tracking-mega { letter-spacing: .35em; }
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 2px; background-repeat: no-repeat;
+  background-position: 0 100%;
+  transition: background-size .35s ease;
+}
+.link-underline:hover { background-size: 100% 2px; }
+
+/* Léger grain papier sur le fond du body */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1;
+  pointer-events: none; opacity: .5;
+  background-image: radial-gradient(var(--bg-soft) 1px, transparent 1px);
+  background-size: 4px 4px;
+}
+
+/* ---- Respect des préférences de mouvement réduit ------------------- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .marquee__track { animation: none !important; }
+  .status-dot.is-open { animation: none !important; }
+  [data-parallax] { transform: none !important; }
+}

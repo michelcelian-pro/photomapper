@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Page introuvable — Star Kebab Le Thor</title>
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#1A1614" />
+
+  <script>(function(){try{var t=localStorage.getItem('sk-theme');if(!t){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+
+  <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;🌯&lt;/text&gt;&lt;/svg&gt;" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/js/config.js"></script>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+
+<body class="grid min-h-screen place-items-center bg-bg px-4 text-ink antialiased">
+
+  <!-- Marquee de fond, en haut -->
+  <div class="marquee full-bleed fixed inset-x-0 top-0 border-b-2 border-line bg-charbon py-3 text-creme">
+    <div class="marquee__track">
+      <div class="marquee__group font-display text-lg font-600 italic">
+        <span class="px-6">Oups</span><span class="px-6 text-safran">✦</span>
+        <span class="px-6">Cette page est partie en livraison</span><span class="px-6 text-safran">✦</span>
+        <span class="px-6">404</span><span class="px-6 text-safran">✦</span>
+      </div>
+      <div class="marquee__group font-display text-lg font-600 italic" aria-hidden="true">
+        <span class="px-6">Oups</span><span class="px-6 text-safran">✦</span>
+        <span class="px-6">Cette page est partie en livraison</span><span class="px-6 text-safran">✦</span>
+        <span class="px-6">404</span><span class="px-6 text-safran">✦</span>
+      </div>
+    </div>
+  </div>
+
+  <main class="mx-auto max-w-xl text-center">
+    <div class="select-none text-8xl leading-none sm:text-9xl" aria-hidden="true">🌯💧</div>
+    <p class="mt-6 font-mono text-sm uppercase tracking-mega text-paprika">Erreur 404</p>
+    <h1 class="mt-3 text-balance font-display text-5xl font-700 leading-[0.95] tracking-tightest sm:text-7xl">
+      Ce kebab a roulé<br /><span class="italic font-600 text-paprika">un peu trop loin.</span>
+    </h1>
+    <p class="mx-auto mt-5 max-w-md text-pretty text-ink-soft sm:text-lg">
+      La page que vous cherchez n'existe pas (ou plus). Pas de panique : l'essentiel — la faim — se règle en un clic.
+    </p>
+
+    <div class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+      <a href="index.html" class="inline-flex items-center justify-center gap-2 rounded-sm border-2 border-line bg-bg px-7 py-4 font-semibold shadow-brutal transition-transform hover:-translate-y-1">
+        ← Retour à l'accueil
+      </a>
+      <a href="[LIEN_UBER_EATS]" target="_blank" rel="noopener" class="group inline-flex items-center justify-center gap-2 rounded-sm bg-paprika px-7 py-4 font-semibold text-white shadow-brutal transition-transform hover:-translate-y-1">
+        Commander sur Uber Eats <span class="transition-transform group-hover:translate-x-1">→</span>
+      </a>
+    </div>
+
+    <p class="mt-10 font-mono text-[11px] uppercase tracking-wider text-ink-soft">Star Kebab · Le Thor (84) · 43.9276° N · 4.9986° E</p>
+  </main>
+
+  <script src="assets/js/main.js"></script>
+</body>
+</html>

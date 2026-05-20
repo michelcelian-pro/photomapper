@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notre histoire — Star Kebab Le Thor · Produits frais & sauces maison</title>
+  <meta name="description" content="L'histoire du Star Kebab au Thor : un snack artisan depuis 2016, des produits frais, une viande de qualité et des sauces préparées maison chaque jour." />
+  <meta name="theme-color" content="#1A1614" />
+
+  <script>(function(){try{var t=localStorage.getItem('sk-theme');if(!t){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+
+  <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;🌯&lt;/text&gt;&lt;/svg&gt;" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="assets/js/config.js"></script>
+  <link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+
+<body data-page="histoire" class="bg-bg text-ink antialiased pb-[72px] md:pb-0">
+
+  <a href="#contenu" class="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:m-3 focus:rounded focus:bg-paprika focus:px-4 focus:py-2 focus:text-white">Aller au contenu</a>
+
+  <!-- BANDEAU SAISONNIER -->
+  <div data-season-banner class="full-bleed bg-paprika text-white text-center text-sm font-medium">
+    <div class="mx-auto flex max-w-7xl items-center justify-center gap-3 px-4 py-2.5">
+      <p class="leading-tight">🌶️ Nouveau sur Uber Eats : le <strong class="font-bold">Kebab Harissa du chef</strong> — édition limitée.</p>
+      <a href="[LIEN_UBER_EATS]" target="_blank" rel="noopener" class="hidden shrink-0 underline underline-offset-2 hover:opacity-80 sm:inline">J'y goûte →</a>
+      <button data-banner-close aria-label="Fermer le bandeau" class="absolute right-3 top-1/2 -translate-y-1/2 text-lg leading-none hover:opacity-70">×</button>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="sticky top-0 z-50 border-b-2 border-line bg-bg">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+      <a href="index.html" class="group flex items-center gap-2.5" aria-label="Accueil Star Kebab Le Thor">
+        <span class="grid h-9 w-9 place-items-center rounded-sm bg-paprika text-lg shadow-brutal-sm">🌯</span>
+        <span class="leading-none">
+          <span class="block font-display text-lg font-700 tracking-tightest">Star Kebab</span>
+          <span class="block font-mono text-[10px] uppercase tracking-mega text-ink-soft">Le Thor · 84</span>
+        </span>
+      </a>
+      <nav data-nav class="flex items-center gap-7 text-sm font-medium md:static">
+        <button data-nav-close aria-label="Fermer le menu" class="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-sm border-2 border-line text-xl leading-none md:hidden">×</button>
+        <a href="index.html" class="link-underline">Accueil</a>
+        <a href="specialites.html" class="link-underline">Spécialités</a>
+        <a href="histoire.html" aria-current="page" class="link-underline text-paprika">Histoire</a>
+        <a href="contact.html" class="link-underline">Contact</a>
+        <div class="mt-4 flex flex-col gap-4 border-t-2 border-line pt-6 md:hidden">
+          <span data-status class="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-wider">
+            <span data-status-dot class="status-dot"></span><span data-status-text>Chargement…</span>
+          </span>
+          <a href="[LIEN_UBER_EATS]" target="_blank" rel="noopener" class="rounded-sm bg-paprika px-5 py-3 text-center font-semibold text-white shadow-brutal-sm">Commander sur Uber Eats</a>
+        </div>
+      </nav>
+      <div class="flex items-center gap-3">
+        <span data-status class="hidden items-center gap-2 rounded-full border-2 border-line px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider lg:inline-flex">
+          <span data-status-dot class="status-dot"></span><span data-status-text>Chargement…</span>
+        </span>
+        <a href="[LIEN_UBER_EATS]" target="_blank" rel="noopener" class="hidden rounded-sm bg-paprika px-4 py-2 text-sm font-semibold text-white shadow-brutal-sm transition-transform hover:-translate-y-0.5 md:inline-block">Commander</a>
+        <button data-nav-toggle aria-label="Ouvrir le menu" aria-expanded="false" class="grid h-10 w-10 place-items-center rounded-sm border-2 border-line md:hidden"><span class="text-xl leading-none">≡</span></button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Voile derrière le tiroir mobile -->
+  <div data-nav-backdrop class="fixed inset-0 z-30 bg-charbon/50 md:hidden"></div>
+
+  <main id="contenu">
+
+    <!-- HERO -->
+    <section class="relative flex min-h-[70vh] items-end overflow-hidden border-b-2 border-line bg-charbon">
+      <div data-img class="absolute inset-0">
+        <img data-fallback="grill,flame,cooking" data-parallax="0.15" src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1600&q=70" alt="La broche qui tourne devant la flamme" class="absolute inset-0 h-[118%] w-full object-cover" />
+      </div>
+      <div class="absolute inset-0 bg-gradient-to-t from-charbon via-charbon/55 to-charbon/20"></div>
+      <div class="relative z-10 mx-auto w-full max-w-5xl px-4 pb-14 pt-32 sm:px-6">
+        <p class="reveal font-mono text-xs uppercase tracking-mega text-safran">Notre histoire — depuis 2016</p>
+        <h1 class="reveal mt-4 text-balance font-display text-5xl font-700 leading-[0.95] tracking-tightest text-creme sm:text-7xl lg:text-8xl" data-delay="1">
+          Une broche, un quartier,<br /><span class="italic font-600 text-safran">une obsession.</span>
+        </h1>
+      </div>
+    </section>
+
+    <!-- LEAD -->
+    <section class="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24">
+      <p class="reveal text-balance font-display text-2xl font-500 leading-snug sm:text-3xl">Tout a commencé par une envie simple : faire au Thor le kebab qu'on aurait aimé trouver. Du vrai, du frais, du généreux. Pas un produit industriel réchauffé — une street food qu'on assume et qu'on soigne.</p>
+    </section>
+
+    <!-- CORPS ÉDITORIAL -->
+    <section class="mx-auto max-w-3xl px-4 sm:px-6">
+      <div class="reveal space-y-6 text-lg leading-relaxed text-ink-soft">
+        <p><span class="float-left mr-3 mt-1 font-display text-6xl font-700 leading-[0.7] text-paprika">E</span>n 2016, on a poussé la porte d'un petit local, allumé la broche pour la première fois, et accroché l'enseigne. Les débuts ont été faits de longues journées, de pain qu'on apprend à dorer juste comme il faut, et de habitués qui, très vite, sont devenus des visages familiers.</p>
+        <p>On a compris une chose dès le départ : la différence ne se joue pas sur les effets de manche, mais sur les détails. Une viande qu'on choisit et qu'on marine nous-mêmes. Une salade coupée le jour même. Des sauces qu'on prépare le matin, à la main, parce que c'est là que se cache le goût.</p>
+      </div>
+    </section>
+
+    <!-- IMAGE FULL-BLEED + PULL QUOTE -->
+    <figure class="full-bleed my-16 border-y-2 border-line">
+      <div data-img class="relative aspect-[16/9] max-h-[70vh] w-full overflow-hidden">
+        <img data-fallback="kitchen,cooking,restaurant" loading="lazy" src="https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1600&q=70" alt="Dans la cuisine du Star Kebab" class="absolute inset-0 h-full w-full object-cover" />
+      </div>
+    </figure>
+
+    <section class="mx-auto max-w-3xl px-4 sm:px-6">
+      <blockquote class="reveal border-l-4 border-paprika pl-6 font-display text-2xl font-500 italic leading-snug sm:text-3xl">« On ne triche pas avec la faim des gens. Ce qu'on sert, c'est ce qu'on aurait envie de manger nous-mêmes. »</blockquote>
+      <div class="reveal mt-10 space-y-6 text-lg leading-relaxed text-ink-soft">
+        <p>Au fil des années, le quartier a grandi avec nous. On a rejoint Uber Eats pour livrer ceux qui ne pouvaient pas passer, ajouté les frites maison coupées sur place, peaufiné chaque recette. Mais l'essentiel n'a jamais bougé : le frais, le goût, et le sourire au comptoir.</p>
+        <p>Aujourd'hui, le Star Kebab, c'est toujours la même maison. Un snack artisan, fier de sa street food, qui prépare chaque commande comme si c'était la première.</p>
+      </div>
+    </section>
+
+    <!-- TIMELINE -->
+    <section class="mx-auto max-w-4xl px-4 py-20 sm:px-6 sm:py-28">
+      <p class="reveal font-mono text-xs uppercase tracking-mega text-paprika">Les étapes</p>
+      <h2 class="reveal mt-3 font-display text-4xl font-700 tracking-tightest sm:text-5xl" data-delay="1">Du premier tour de broche à aujourd'hui</h2>
+
+      <ol class="mt-12 space-y-0">
+        <li class="reveal grid grid-cols-[auto_1fr] gap-5 border-l-2 border-line pb-10 pl-6 last:pb-0 sm:gap-8">
+          <span class="-ml-[2.4rem] grid h-12 w-12 place-items-center rounded-full border-2 border-line bg-safran font-mono text-sm font-bold text-charbon">16</span>
+          <div><h3 class="font-display text-2xl font-600">2016 — On allume la broche</h3><p class="mt-1 text-ink-soft">Ouverture du Star Kebab au Thor. Les premiers habitués, les premières longues soirées.</p></div>
+        </li>
+        <li class="reveal grid grid-cols-[auto_1fr] gap-5 border-l-2 border-line pb-10 pl-6 sm:gap-8" data-delay="1">
+          <span class="-ml-[2.4rem] grid h-12 w-12 place-items-center rounded-full border-2 border-line bg-paprika font-mono text-sm font-bold text-white">18</span>
+          <div><h3 class="font-display text-2xl font-600">2018 — Les sauces, 100% maison</h3><p class="mt-1 text-ink-soft">On arrête tout ce qui est tout prêt. Les sauces sont désormais préparées chaque matin.</p></div>
+        </li>
+        <li class="reveal grid grid-cols-[auto_1fr] gap-5 border-l-2 border-line pb-10 pl-6 sm:gap-8" data-delay="2">
+          <span class="-ml-[2.4rem] grid h-12 w-12 place-items-center rounded-full border-2 border-line bg-pistache font-mono text-sm font-bold text-white">20</span>
+          <div><h3 class="font-display text-2xl font-600">2020 — On livre le quartier</h3><p class="mt-1 text-ink-soft">Arrivée sur Uber Eats pour que tout le monde puisse en profiter, même de chez soi.</p></div>
+        </li>
+        <li class="reveal grid grid-cols-[auto_1fr] gap-5 border-l-2 border-line pb-10 pl-6 sm:gap-8" data-delay="2">
+          <span class="-ml-[2.4rem] grid h-12 w-12 place-items-center rounded-full border-2 border-line bg-safran font-mono text-sm font-bold text-charbon">23</span>
+          <div><h3 class="font-display text-2xl font-600">2023 — Les frites deviennent un rituel</h3><p class="mt-1 text-ink-soft">Coupées sur place, dorées deux fois. Un classique de la maison était né.</p></div>
+        </li>
+        <li class="reveal grid grid-cols-[auto_1fr] gap-5 pl-6 sm:gap-8" data-delay="3">
+          <span class="-ml-[2.4rem] grid h-12 w-12 place-items-center rounded-full border-2 border-line bg-charbon font-mono text-xs font-bold text-creme">★</span>
+          <div><h3 class="font-display text-2xl font-600">Aujourd'hui — La même obsession</h3><p class="mt-1 text-ink-soft">Le frais, le goût, le sourire. Chaque commande préparée comme la première.</p></div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- VALEURS -->
+    <section class="full-bleed border-y-2 border-line bg-bg-soft">
+      <div class="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28">
+        <p class="reveal font-mono text-xs uppercase tracking-mega text-paprika">Ce à quoi on tient</p>
+        <h2 class="reveal mt-3 font-display text-4xl font-700 tracking-tightest sm:text-6xl" data-delay="1">Trois promesses, jamais négociées</h2>
+        <div class="mt-12 grid gap-5 md:grid-cols-3">
+          <article class="reveal rounded-sm border-2 border-line bg-card p-7 shadow-brutal-sm">
+            <span class="text-3xl">🥬</span>
+            <h3 class="mt-4 font-display text-2xl font-600">Produits frais</h3>
+            <p class="mt-2 text-ink-soft">Salades, crudités, pains : préparés le jour même. On travaille en frais, jamais en surgelé tout prêt.</p>
+          </article>
+          <article class="reveal rounded-sm border-2 border-line bg-card p-7 shadow-brutal-sm" data-delay="1">
+            <span class="text-3xl">🔥</span>
+            <h3 class="mt-4 font-display text-2xl font-600">Viande de qualité</h3>
+            <p class="mt-2 text-ink-soft">Une viande halal sélectionnée, marinée maison, tranchée minute sur la broche. Le cœur du métier.</p>
+          </article>
+          <article class="reveal rounded-sm border-2 border-line bg-card p-7 shadow-brutal-sm" data-delay="2">
+            <span class="text-3xl">🥣</span>
+            <h3 class="mt-4 font-display text-2xl font-600">Sauces maison</h3>
+            <p class="mt-2 text-ink-soft">Blanche, algérienne, harissa du chef… toutes préparées le matin, à la main. Notre signature.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ÉQUIPE (placeholder) -->
+    <section class="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28">
+      <p class="reveal font-mono text-xs uppercase tracking-mega text-paprika">L'équipe</p>
+      <h2 class="reveal mt-3 font-display text-4xl font-700 tracking-tightest sm:text-6xl" data-delay="1">Les visages derrière le comptoir</h2>
+      <p class="reveal mt-3 max-w-xl text-ink-soft" data-delay="1">Une petite équipe, beaucoup de cœur. <span class="font-mono text-xs uppercase tracking-wider">(noms et photos à compléter)</span></p>
+
+      <div class="mt-12 grid gap-5 sm:grid-cols-3">
+        <article class="reveal text-center">
+          <div class="mx-auto grid aspect-square w-full max-w-[240px] place-items-center rounded-sm border-2 border-line bg-paprika font-display text-6xl font-700 text-white shadow-brutal">M</div>
+          <h3 class="mt-4 font-display text-xl font-600">[Prénom]</h3>
+          <p class="font-mono text-xs uppercase tracking-wider text-ink-soft">Le patron · à la broche</p>
+        </article>
+        <article class="reveal text-center" data-delay="1">
+          <div class="mx-auto grid aspect-square w-full max-w-[240px] place-items-center rounded-sm border-2 border-line bg-safran font-display text-6xl font-700 text-charbon shadow-brutal">S</div>
+          <h3 class="mt-4 font-display text-xl font-600">[Prénom]</h3>
+          <p class="font-mono text-xs uppercase tracking-wider text-ink-soft">Sauces & préparation</p>
+        </article>
+        <article class="reveal text-center" data-delay="2">
+          <div class="mx-auto grid aspect-square w-full max-w-[240px] place-items-center rounded-sm border-2 border-line bg-pistache font-display text-6xl font-700 text-white shadow-brutal">A</div>
+          <h3 class="mt-4 font-display text-xl font-600">[Prénom]</h3>
+          <p class="font-mono text-xs uppercase tracking-wider text-ink-soft">Accueil & comptoir</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <section class="full-bleed border-y-2 border-line bg-paprika text-white">
+      <div class="mx-auto flex max-w-7xl flex-col items-center gap-6 px-4 py-20 text-center sm:px-6 sm:py-28">
+        <p class="reveal font-mono text-xs uppercase tracking-mega text-white/80">Maintenant, à vous de goûter</p>
+        <h2 class="reveal text-balance font-display text-4xl font-700 leading-[0.98] tracking-tightest sm:text-6xl" data-delay="1">Le reste se passe à table.</h2>
+        <a href="[LIEN_UBER_EATS]" target="_blank" rel="noopener" class="reveal group mt-2 inline-flex items-center gap-2 rounded-sm border-2 border-charbon bg-creme px-8 py-4 text-lg font-semibold text-charbon shadow-brutal transition-transform hover:-translate-y-1" data-delay="2">
+          Commander sur Uber Eats <span class="transition-transform group-hover:translate-x-1">→</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="full-bleed bg-charbon px-4 py-16 text-creme sm:py-20">
+    <div class="mx-auto max-w-sm rounded-sm bg-creme p-7 font-mono text-sm text-charbon shadow-brutal-lg">
+      <p class="text-center font-display text-2xl font-700">STAR KEBAB</p>
+      <p class="mt-1 text-center text-[11px] uppercase tracking-wider">Le Thor · Vaucluse (84)</p>
+      <div class="dashed-y my-4 py-3 text-[13px]">
+        <div class="receipt-line"><span>1× Kebab maison</span><span class="dots"></span><span>✓</span></div>
+        <div class="receipt-line"><span>1× Frites maison</span><span class="dots"></span><span>✓</span></div>
+        <div class="receipt-line"><span>1× Sauce du chef</span><span class="dots"></span><span>✓</span></div>
+      </div>
+      <div class="receipt-line text-base font-700"><span>TOTAL</span><span class="dots"></span><span>BONHEUR</span></div>
+      <div class="dashed-y my-4 py-3 text-[12px] leading-relaxed">
+        <div class="receipt-line"><span>Tél</span><span class="dots"></span><span>[TELEPHONE]</span></div>
+        <div class="receipt-line"><span>Adresse</span><span class="dots"></span><span class="text-right">[ADRESSE]</span></div>
+        <div class="receipt-line"><span>GPS</span><span class="dots"></span><span>43.9276°N 4.9986°E</span></div>
+        <div class="receipt-line"><span>Statut</span><span class="dots"></span>
+          <span data-status class="inline-flex items-center gap-1.5"><span data-status-dot class="status-dot"></span><span data-status-text>—</span></span>
+        </div>
+      </div>
+      <div class="barcode my-4 text-charbon"></div>
+      <p class="text-center text-[11px] uppercase tracking-wider">Est. 2016 — Merci, à bientôt 🌯</p>
+    </div>
+
+    <div class="mx-auto mt-12 flex max-w-5xl flex-col items-center gap-8 text-center">
+      <nav class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
+        <a href="index.html" class="link-underline">Accueil</a>
+        <a href="specialites.html" class="link-underline">Spécialités</a>
+        <a href="histoire.html" class="link-underline">Histoire</a>
+        <a href="contact.html" class="link-underline">Contact</a>
+        <a href="[LIEN_UBER_EATS]" target="_blank" rel="noopener" class="link-underline text-safran">Commander ↗</a>
+      </nav>
+      <div class="flex items-center gap-5">
+        <a href="[INSTAGRAM]" target="_blank" rel="noopener" class="hover:text-safran">Instagram</a>
+        <a href="[FACEBOOK]" target="_blank" rel="noopener" class="hover:text-safran">Facebook</a>
+        <a href="[TIKTOK]" target="_blank" rel="noopener" class="hover:text-safran">TikTok</a>
+      </div>
+      <button data-theme-toggle aria-label="Changer de thème jour/nuit" aria-pressed="false" class="inline-flex items-center gap-2 rounded-full border border-creme/40 px-4 py-2 font-mono text-xs uppercase tracking-wider transition-colors hover:bg-creme hover:text-charbon">
+        <span aria-hidden="true">☀︎ / ☾</span> Ambiance
+      </button>
+      <p class="font-mono text-[11px] text-creme/50">© <span data-year>2026</span> Star Kebab — Le Thor. Fait avec faim. · Vente à emporter & livraison Uber Eats.</p>
+    </div>
+  </footer>
+
+  <!-- CTA STICKY -->
+  <div data-mobile-cta class="fixed inset-x-0 bottom-0 z-[60] flex items-center justify-between gap-3 border-t-2 border-line bg-charbon px-4 py-3 md:hidden">
+    <span data-status class="flex min-w-0 items-center gap-2 font-mono text-[11px] uppercase tracking-wider text-creme">
+      <span data-status-dot class="status-dot"></span><span data-status-text class="truncate">—</span>
+    </span>
+    <a href="[LIEN_UBER_EATS]" target="_blank" rel="noopener" class="shrink-0 rounded-sm bg-paprika px-5 py-2.5 text-sm font-semibold text-white">Commander</a>
+  </div>
+  <a data-sticky-cta href="[LIEN_UBER_EATS]" target="_blank" rel="noopener" class="fixed bottom-6 right-6 z-[60] hidden items-center gap-2 rounded-sm bg-paprika px-5 py-3.5 font-semibold text-white shadow-brutal-lg transition-transform hover:-translate-y-1 md:flex">
+    🌯 Commander sur Uber Eats <span aria-hidden="true">→</span>
+  </a>
+
+  <script src="assets/js/main.js"></script>
+</body>
+</html>
