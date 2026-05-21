@@ -210,6 +210,9 @@ h1, h2, h3, h4, .font-display {
 /* ---- Petits utilitaires -------------------------------------------- */
 .text-balance { text-wrap: balance; }
 .text-pretty { text-wrap: pretty; }
+
+/* Photo de devanture en hero : un peu plus punchy, sans excès */
+.hero-photo { filter: contrast(1.08) saturate(1.06) brightness(0.95); }
 .tracking-mega { letter-spacing: .35em; }
 .link-underline {
   background-image: linear-gradient(currentColor, currentColor);

@@ -44,19 +44,21 @@
   <main id="haut">
 
     <!-- ================================ HERO ================================ -->
-    <section class="relative flex min-h-[88vh] items-center overflow-hidden border-b-2 border-line bg-charbon">
+    <section class="relative flex min-h-[88vh] items-end overflow-hidden border-b-2 border-line bg-charbon">
       <div data-img class="absolute inset-0">
-        <img data-fallback="doner,kebab" data-parallax="0.15"
-             src="https://images.unsplash.com/photo-1633321088355-d0f81134ca3b?auto=format&fit=crop&w=1600&q=70"
-             alt="Broche de kebab grillée" class="absolute inset-0 h-[116%] w-full object-cover" />
+        <img data-fallback="kebab,restaurant,storefront" data-parallax="0.12"
+             src="https://i.postimg.cc/wBd6D6TH/star-kebab.webp"
+             alt="Devanture du Star Kebab au Thor"
+             class="hero-photo absolute inset-0 h-[116%] w-full object-cover" style="object-position:center 30%;" />
       </div>
-      <div class="absolute inset-0 bg-gradient-to-t from-charbon via-charbon/70 to-charbon/40"></div>
+      <!-- voile haut (atténue la banderole) + voile bas (lisibilité du texte) -->
+      <div class="absolute inset-0 bg-gradient-to-b from-charbon/75 via-transparent to-transparent"></div>
+      <div class="absolute inset-0 bg-gradient-to-t from-charbon via-charbon/75 to-transparent"></div>
 
-      <div class="relative z-10 mx-auto w-full max-w-6xl px-4 py-24 text-center sm:px-6">
-        <p class="reveal font-mono text-xs uppercase tracking-mega text-safran">Le Thor · Vaucluse (84)</p>
-        <h1 class="reveal mt-4 font-display text-6xl font-700 leading-[0.9] tracking-tightest text-creme sm:text-8xl" data-delay="1">Star Kebab</h1>
-        <p class="reveal mx-auto mt-5 max-w-xl text-balance font-display text-xl italic text-creme/90 sm:text-2xl" data-delay="2">Kebab, tacos, frites — faits maison.</p>
-        <p class="reveal mx-auto mt-3 max-w-md text-pretty text-creme/75" data-delay="2">À emporter sur place, ou livré chez vous par Uber Eats.</p>
+      <div class="relative z-10 mx-auto w-full max-w-6xl px-4 pb-16 pt-28 text-center sm:px-6">
+        <p class="reveal font-mono text-xs uppercase tracking-mega text-safran">Star Kebab · Le Thor (84)</p>
+        <h1 class="reveal mt-3 font-display text-4xl font-700 leading-[0.95] tracking-tightest text-creme sm:text-6xl" data-delay="1">Kebab, tacos, frites<br /><span class="italic font-600 text-safran">faits maison.</span></h1>
+        <p class="reveal mx-auto mt-4 max-w-md text-pretty text-creme/80" data-delay="2">À emporter sur place, ou livré chez vous par Uber Eats.</p>
 
         <!-- Statut live -->
         <div class="reveal mt-7 flex justify-center" data-delay="3">
